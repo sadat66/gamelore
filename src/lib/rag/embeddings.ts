@@ -3,7 +3,7 @@ import OpenAI from "openai";
 /** DB column + index use 768-dim vectors (see migration `embeddings_768_groq`). */
 export const EMBEDDING_DIM = 768;
 
-export type EmbeddingProvider = "nomic" | "openai-compatible" | "openai";
+export type EmbeddingProvider = "nomic" | "openai-compatible" | "openai" | "huggingface";
 
 const NOMIC_URL = "https://api-atlas.nomic.ai/v1/embedding/text";
 const NOMIC_MODEL =
@@ -41,6 +41,9 @@ export function getEmbeddingProvider(): EmbeddingProvider {
     process.env.EMBEDDINGS_MODEL?.trim()
   ) {
     return "openai-compatible";
+  }
+  if (process.env.HUGGINGFACE_API_KEY?.trim()) {
+    return "huggingface";
   }
   if (process.env.OPENAI_API_KEY?.trim()) {
     return "openai";
@@ -128,7 +131,7 @@ async function embedOpenAiCompatible(texts: string[]): Promise<number[][]> {
     headers.Authorization = `Bearer ${apiKey}`;
   }
 
-  const url = `${base}/embeddings`;
+  const url = base.includes("/v1") ? `${base}/embeddings` : `${base}/v1/embeddings`;
   const res = await fetch(url, {
     method: "POST",
     headers,
@@ -145,7 +148,17 @@ async function embedOpenAiCompatible(texts: string[]): Promise<number[][]> {
 
   const parsed = JSON.parse(raw) as {
     data?: { embedding: number[]; index: number }[];
+    error?: string | { message: string };
   };
+
+  if (parsed.error) {
+    const msg =
+      typeof parsed.error === "string"
+        ? parsed.error
+        : parsed.error.message || JSON.stringify(parsed.error);
+    throw new Error(`Embeddings API error: ${msg}`);
+  }
+
   const data = parsed.data;
   if (!data?.length) {
     throw new Error("Embeddings API: missing data[] in response.");
@@ -155,6 +168,44 @@ async function embedOpenAiCompatible(texts: string[]): Promise<number[][]> {
   const vectors = data.map((d) => d.embedding);
   for (const vec of vectors) {
     assertDim("OpenAI-compatible", vec);
+  }
+  return vectors;
+}
+
+async function embedHuggingFace(texts: string[]): Promise<number[][]> {
+  const model =
+    process.env.HUGGINGFACE_EMBEDDING_MODEL?.trim() ||
+    "sentence-transformers/all-mpnet-base-v2";
+  const apiKey = process.env.HUGGINGFACE_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("HUGGINGFACE_API_KEY is required for Hugging Face embeddings.");
+  }
+
+  const url = `https://api-inference.huggingface.co/pipeline/feature-extraction/${model}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      inputs: texts,
+      options: { wait_for_model: true },
+    }),
+  });
+
+  const raw = await res.text();
+  if (!res.ok) {
+    throw new Error(`Hugging Face embeddings failed (${res.status}): ${raw}`);
+  }
+
+  const vectors = JSON.parse(raw) as number[][];
+  if (!Array.isArray(vectors) || vectors.length !== texts.length) {
+    throw new Error("Hugging Face embeddings: unexpected response shape.");
+  }
+
+  for (const vec of vectors) {
+    assertDim("Hugging Face", vec);
   }
   return vectors;
 }
@@ -192,6 +243,9 @@ export async function embedTexts(
   }
   if (provider === "openai-compatible") {
     return embedOpenAiCompatible(texts);
+  }
+  if (provider === "huggingface") {
+    return embedHuggingFace(texts);
   }
   return embedOpenAI(texts);
 }
