@@ -21,9 +21,14 @@ import toast from "react-hot-toast";
 interface DashboardShellProps {
   user: User;
   children: React.ReactNode;
+  isAdmin?: boolean;
 }
 
-export default function DashboardShell({ user, children }: DashboardShellProps) {
+export default function DashboardShell({
+  user,
+  children,
+  isAdmin = false,
+}: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const router = useRouter();
@@ -80,7 +85,7 @@ export default function DashboardShell({ user, children }: DashboardShellProps) 
         </div>
 
         {/* New chat button */}
-        <div className="p-4">
+        <div className="p-4 space-y-2">
           <button
             onClick={() => {
               router.push("/dashboard");
@@ -91,6 +96,15 @@ export default function DashboardShell({ user, children }: DashboardShellProps) 
             <Plus className="w-4 h-4" />
             New Quest
           </button>
+          {isAdmin ? (
+            <Link
+              href="/dashboard/admin"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-[rgba(234,179,8,0.25)] bg-[rgba(234,179,8,0.06)] text-sm text-amber-200/90 hover:bg-[rgba(234,179,8,0.1)] transition-all duration-200"
+            >
+              <Settings className="w-4 h-4" />
+              Lore control panel
+            </Link>
+          ) : null}
         </div>
 
         {/* Chat history */}

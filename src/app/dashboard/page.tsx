@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Send,
   Sparkles,
   Bot,
   User,
   Loader2,
+  ChevronDown,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface Message {
   id: string;
@@ -16,17 +18,26 @@ interface Message {
   timestamp: Date;
 }
 
+type GameOption = {
+  id: string;
+  title: string;
+  thumbnail_url: string | null;
+};
+
 const WELCOME_MESSAGES: Message[] = [
   {
     id: "welcome-1",
     role: "assistant",
     content:
-      "⚔️ Greetings, adventurer! I am the GameLore Oracle — your guide through the vast tapestry of game mythology and lore. Ask me anything about your favorite game worlds, characters, quests, or hidden storylines. Which realm shall we explore first?",
+      "⚔️ Greetings! Choose your realm above, then ask about lore from the documents your admins have uploaded. I answer from that game’s indexed knowledge — not from the open web.",
     timestamp: new Date(),
   },
 ];
 
 export default function DashboardPage() {
+  const [games, setGames] = useState<GameOption[]>([]);
+  const [gameId, setGameId] = useState<string>("");
+  const [gamesLoading, setGamesLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>(WELCOME_MESSAGES);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -41,9 +52,36 @@ export default function DashboardPage() {
     scrollToBottom();
   }, [messages]);
 
+  const loadGames = useCallback(async () => {
+    setGamesLoading(true);
+    try {
+      const res = await fetch("/api/games");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not load games");
+      const list: GameOption[] = data.games ?? [];
+      setGames(list);
+      setGameId((prev) => {
+        if (prev && list.some((g) => g.id === prev)) return prev;
+        return list[0]?.id ?? "";
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not load games");
+    } finally {
+      setGamesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadGames();
+  }, [loadGames]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
+    if (!gameId) {
+      toast.error("Select a game first");
+      return;
+    }
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
@@ -52,40 +90,97 @@ export default function DashboardPage() {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
     setInput("");
     setIsLoading(true);
 
-    // Simulate AI response (replace with actual RAG + LLM integration later)
-    setTimeout(() => {
-      const responses = [
-        `That's a fascinating question about game lore! Let me weave this tale for you...\n\nIn the annals of gaming history, this topic connects deeply with the foundational mythology. The creators drew inspiration from ancient legends and wove them into a tapestry of interactive storytelling.\n\n*Note: This is a demo response. Connect your RAG pipeline and LLM API to get real lore answers!*`,
-        `Ah, a question worthy of a true lore hunter! 📜\n\nThe threads of this narrative run deep through the game's world. Every character, every location has layers of meaning waiting to be uncovered.\n\nThe deeper lore suggests connections that most players miss on their first playthrough...\n\n*Note: This is a demo response. Your RAG + LLM integration will provide accurate, sourced answers!*`,
-        `The Oracle has consulted the ancient texts... 🔮\n\nThis is one of the most debated topics in the gaming lore community. Multiple interpretations exist, each supported by different pieces of in-game evidence.\n\nLet me break it down for you...\n\n*Note: This is a placeholder response. Once you connect your LLM and RAG pipeline, I'll provide real, detailed lore answers!*`,
-      ];
+    try {
+      const payloadMessages = nextMessages
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameId,
+          messages: payloadMessages,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Chat request failed");
 
       const aiMessage: Message = {
         id: `ai-${Date.now()}`,
         role: "assistant",
-        content: responses[Math.floor(Math.random() * responses.length)],
+        content: data.reply as string,
         timestamp: new Date(),
       };
-
       setMessages((prev) => [...prev, aiMessage]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Chat failed");
+      const errMsg: Message = {
+        id: `err-${Date.now()}`,
+        role: "assistant",
+        content:
+          "I could not reach the lore service. Check GROQ_API_KEY, Supabase, and that the latest pgvector migration (768-dim embeddings) is applied.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errMsg]);
+    } finally {
       setIsLoading(false);
-    }, 1500 + Math.random() * 1000);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      void handleSubmit(e);
     }
   };
 
+  const currentGame = games.find((g) => g.id === gameId);
+
   return (
     <div className="flex flex-col h-full">
-      {/* Chat messages area */}
+      <div className="flex-shrink-0 border-b border-[rgba(139,92,246,0.12)] px-4 md:px-6 py-3 bg-[rgba(6,2,15,0.4)]">
+        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3">
+          <label className="text-xs text-[#8b7faa] whitespace-nowrap shrink-0">
+            Realm
+          </label>
+          <div className="relative flex-1 min-w-0">
+            <select
+              value={gameId}
+              onChange={(e) => setGameId(e.target.value)}
+              disabled={gamesLoading || games.length === 0}
+              className="w-full appearance-none rounded-xl bg-[rgba(15,10,30,0.9)] border border-[rgba(139,92,246,0.2)] text-sm text-[#e8e0f0] px-4 py-2.5 pr-10 outline-none focus:border-purple-500/40 disabled:opacity-50"
+            >
+              {games.length === 0 ? (
+                <option value="">
+                  {gamesLoading ? "Loading…" : "No games — ask an admin to add one"}
+                </option>
+              ) : (
+                games.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.title}
+                  </option>
+                ))
+              )}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8b7faa] pointer-events-none" />
+          </div>
+          {currentGame?.thumbnail_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={currentGame.thumbnail_url}
+              alt=""
+              className="hidden sm:block w-12 h-12 rounded-lg object-cover border border-[rgba(139,92,246,0.2)]"
+            />
+          ) : null}
+        </div>
+      </div>
+
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-6">
         {messages.map((message) => (
           <div
@@ -94,7 +189,6 @@ export default function DashboardPage() {
               message.role === "user" ? "flex-row-reverse" : ""
             }`}
           >
-            {/* Avatar */}
             <div
               className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${
                 message.role === "assistant"
@@ -109,7 +203,6 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Message bubble */}
             <div
               className={`max-w-[85%] ${
                 message.role === "user" ? "chat-bubble-user" : "chat-bubble"
@@ -128,7 +221,6 @@ export default function DashboardPage() {
           </div>
         ))}
 
-        {/* Loading indicator */}
         {isLoading && (
           <div className="flex gap-3 max-w-3xl mx-auto animate-fade-in-up">
             <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center bg-[rgba(139,92,246,0.15)] border border-[rgba(139,92,246,0.2)]">
@@ -138,7 +230,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
                 <span className="text-sm text-[#8b7faa]">
-                  Consulting the ancient texts...
+                  Retrieving lore & thinking…
                 </span>
               </div>
             </div>
@@ -148,10 +240,9 @@ export default function DashboardPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area */}
       <div className="border-t border-[rgba(139,92,246,0.1)] bg-[rgba(6,2,15,0.5)] backdrop-blur-xl px-4 md:px-6 py-4">
         <form
-          onSubmit={handleSubmit}
+          onSubmit={(e) => void handleSubmit(e)}
           className="max-w-3xl mx-auto relative"
         >
           <div className="glass-card !rounded-2xl p-2 flex items-end gap-2 !bg-[rgba(15,10,30,0.8)]">
@@ -160,14 +251,18 @@ export default function DashboardPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about any game lore..."
+              placeholder={
+                gameId
+                  ? "Ask about this game’s uploaded lore…"
+                  : "Select a realm first…"
+              }
               rows={1}
               className="flex-1 bg-transparent text-[#e8e0f0] placeholder:text-[rgba(139,102,204,0.4)] text-sm resize-none border-none outline-none px-4 py-3 max-h-32"
               style={{ minHeight: "44px" }}
             />
             <button
               type="submit"
-              disabled={!input.trim() || isLoading}
+              disabled={!input.trim() || isLoading || !gameId}
               className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-purple-700 flex items-center justify-center text-white disabled:opacity-30 disabled:cursor-not-allowed hover:from-purple-500 hover:to-purple-600 transition-all duration-200"
             >
               <Send className="w-4 h-4" />
@@ -176,8 +271,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-center gap-2 mt-2">
             <Sparkles className="w-3 h-3 text-[rgba(139,92,246,0.3)]" />
             <p className="text-[10px] text-[rgba(139,92,246,0.3)]">
-              GameLore AI may produce inaccurate lore. Always cross-reference
-              with official sources.
+              Answers use RAG over your uploads; they are not general web knowledge.
             </p>
           </div>
         </form>
