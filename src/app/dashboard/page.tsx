@@ -8,6 +8,8 @@ import {
   User,
   Loader2,
   ChevronDown,
+  Scroll,
+  ArrowLeft,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -62,7 +64,7 @@ export default function DashboardPage() {
       setGames(list);
       setGameId((prev) => {
         if (prev && list.some((g) => g.id === prev)) return prev;
-        return list[0]?.id ?? "";
+        return "";
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not load games");
@@ -142,42 +144,107 @@ export default function DashboardPage() {
 
   const currentGame = games.find((g) => g.id === gameId);
 
-  return (
-    <div className="flex flex-col h-full">
-      <div className="flex-shrink-0 border-b border-[rgba(139,92,246,0.12)] px-4 md:px-6 py-3 bg-[rgba(6,2,15,0.4)]">
-        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3">
-          <label className="text-xs text-[#8b7faa] whitespace-nowrap shrink-0">
-            Realm
-          </label>
-          <div className="relative flex-1 min-w-0">
-            <select
-              value={gameId}
-              onChange={(e) => setGameId(e.target.value)}
-              disabled={gamesLoading || games.length === 0}
-              className="w-full appearance-none rounded-xl bg-[rgba(15,10,30,0.9)] border border-[rgba(139,92,246,0.2)] text-sm text-[#e8e0f0] px-4 py-2.5 pr-10 outline-none focus:border-purple-500/40 disabled:opacity-50"
+  if (gamesLoading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 text-purple-500 animate-spin mb-4" />
+        <p className="text-[#8b7faa] text-sm animate-pulse">Scrying the realms...</p>
+      </div>
+    );
+  }
+
+  if (gameId === "") {
+    return (
+      <div className="flex-1 overflow-y-auto px-4 md:px-8 py-10 bg-[radial-gradient(circle_at_50%_0%,rgba(139,92,246,0.08),transparent_50%)]">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-10 text-center space-y-2">
+            <h2
+              className="text-3xl md:text-4xl text-white font-bold tracking-tight"
+              style={{ fontFamily: "'Cinzel', serif" }}
             >
-              {games.length === 0 ? (
-                <option value="">
-                  {gamesLoading ? "Loading…" : "No games — ask an admin to add one"}
-                </option>
-              ) : (
-                games.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.title}
-                  </option>
-                ))
-              )}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8b7faa] pointer-events-none" />
+              Select your Realm
+            </h2>
+            <p className="text-[#8b7faa]">Choose a game to begin your lore quest</p>
           </div>
-          {currentGame?.thumbnail_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
+
+          {games.length === 0 ? (
+            <div className="glass-card p-12 text-center border-dashed border-2 border-[rgba(139,92,246,0.15)] bg-transparent">
+              <Scroll className="w-12 h-12 text-[rgba(139,92,246,0.3)] mx-auto mb-4" />
+              <p className="text-[#8b7faa]">
+                No realms have been indexed yet. Ask an admin to upload lore documents.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
+              {games.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => setGameId(g.id)}
+                  className="group relative flex flex-col items-stretch text-left transition-all duration-300 hover:-translate-y-2 focus:outline-none"
+                >
+                  <div className="aspect-[16/9] rounded-2xl overflow-hidden border border-[rgba(139,92,246,0.2)] bg-[#0f0a1e] relative">
+                    {g.thumbnail_url ? (
+                      <img
+                        src={g.thumbnail_url}
+                        alt={g.title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1a0f3c] to-[#0f0a1e]">
+                        <Sparkles className="w-10 h-10 text-[rgba(139,92,246,0.2)]" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#06020f] via-transparent to-transparent opacity-60" />
+                  </div>
+
+                  <div className="mt-4 px-1">
+                    <h3 className="text-lg font-semibold text-white group-hover:text-purple-300 transition-colors truncate">
+                      {g.title}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <span className="text-[10px] uppercase tracking-widest text-purple-400 font-bold">
+                        Enter Realm
+                      </span>
+                      <div className="h-px flex-1 bg-purple-500/30" />
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-[radial-gradient(circle_at_50%_0%,rgba(139,92,246,0.03),transparent_50%)]">
+      <div className="flex-shrink-0 border-b border-[rgba(139,92,246,0.1)] px-4 md:px-6 py-3 bg-[rgba(6,2,15,0.4)] backdrop-blur-md">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <button
+              onClick={() => {
+                setGameId("");
+                setMessages(WELCOME_MESSAGES);
+              }}
+              className="p-2 rounded-lg hover:bg-white/5 text-[#8b7faa] hover:text-white transition-colors flex-shrink-0"
+              title="Return to selection"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div className="h-4 w-px bg-white/10" />
+            <h2 className="text-sm font-medium text-white truncate">
+              {currentGame?.title}
+            </h2>
+          </div>
+
+          {currentGame?.thumbnail_url && (
             <img
               src={currentGame.thumbnail_url}
               alt=""
-              className="hidden sm:block w-12 h-12 rounded-lg object-cover border border-[rgba(139,92,246,0.2)]"
+              className="w-8 h-8 rounded-lg object-cover border border-[rgba(139,92,246,0.2)]"
             />
-          ) : null}
+          )}
         </div>
       </div>
 

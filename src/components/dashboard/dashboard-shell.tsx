@@ -41,13 +41,7 @@ export default function DashboardShell({
     router.refresh();
   };
 
-  const chatHistory = [
-    { id: 1, title: "Dark Souls Lore Deep Dive", date: "Today" },
-    { id: 2, title: "Elden Ring: The Shattering", date: "Today" },
-    { id: 3, title: "Zelda Timeline Theory", date: "Yesterday" },
-    { id: 4, title: "Mass Effect Reaper Origins", date: "Yesterday" },
-    { id: 5, title: "Hollow Knight: Pale King", date: "3 days ago" },
-  ];
+  const chatHistory: { id: number; title: string; date: string }[] = [];
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#06020f]">
@@ -109,22 +103,26 @@ export default function DashboardShell({
 
         {/* Chat history */}
         <div className="flex-1 overflow-y-auto px-3 pb-4">
-          <div className="mb-2 px-3">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-[rgba(139,92,246,0.4)]">
-              Recent Quests
-            </span>
-          </div>
-          <div className="space-y-1">
-            {chatHistory.map((chat) => (
-              <button
-                key={chat.id}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm text-[#8b7faa] hover:text-[#c4b5fd] hover:bg-[rgba(139,92,246,0.06)] transition-all duration-200 group"
-              >
-                <MessageSquare className="w-4 h-4 flex-shrink-0 opacity-50 group-hover:opacity-80" />
-                <span className="truncate">{chat.title}</span>
-              </button>
-            ))}
-          </div>
+          {chatHistory.length > 0 && (
+            <>
+              <div className="mb-2 px-3">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[rgba(139,92,246,0.4)]">
+                  Recent Quests
+                </span>
+              </div>
+              <div className="space-y-1">
+                {chatHistory.map((chat) => (
+                  <button
+                    key={chat.id}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm text-[#8b7faa] hover:text-[#c4b5fd] hover:bg-[rgba(139,92,246,0.06)] transition-all duration-200 group"
+                  >
+                    <MessageSquare className="w-4 h-4 flex-shrink-0 opacity-50 group-hover:opacity-80" />
+                    <span className="truncate">{chat.title}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Sidebar footer - user */}
