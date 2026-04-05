@@ -31,14 +31,23 @@ export default function DashboardShell({
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast.success("Until next time, adventurer!");
-    router.push("/");
-    router.refresh();
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await supabase.auth.signOut();
+      toast.success("Until next time, adventurer!");
+      router.push("/");
+      router.refresh();
+    } catch {
+      toast.error("The realm refused your departure. Try again.");
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
   const chatHistory: { id: number; title: string; date: string }[] = [];
@@ -85,7 +94,8 @@ export default function DashboardShell({
               router.push("/dashboard");
               router.refresh();
             }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-[rgba(139,92,246,0.2)] bg-[rgba(139,92,246,0.06)] text-sm text-purple-300 hover:bg-[rgba(139,92,246,0.12)] hover:border-[rgba(139,92,246,0.35)] transition-all duration-200"
+            disabled={isSigningOut}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-[rgba(139,92,246,0.2)] bg-[rgba(139,92,246,0.06)] text-sm text-purple-300 hover:bg-[rgba(139,92,246,0.12)] hover:border-[rgba(139,92,246,0.35)] transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             New Quest
@@ -93,7 +103,9 @@ export default function DashboardShell({
           {isAdmin ? (
             <Link
               href="/dashboard/admin"
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-[rgba(234,179,8,0.25)] bg-[rgba(234,179,8,0.06)] text-sm text-amber-200/90 hover:bg-[rgba(234,179,8,0.1)] transition-all duration-200"
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-[rgba(234,179,8,0.25)] bg-[rgba(234,179,8,0.06)] text-sm text-amber-200/90 hover:bg-[rgba(234,179,8,0.1)] transition-all duration-200 ${
+                isSigningOut ? "pointer-events-none opacity-30" : ""
+              }`}
             >
               <Settings className="w-4 h-4" />
               Lore control panel
@@ -164,10 +176,11 @@ export default function DashboardShell({
                 <div className="my-1 border-t border-[rgba(139,92,246,0.1)]" />
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                  disabled={isSigningOut}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-all duration-200 disabled:opacity-50"
                 >
                   <LogOut className="w-4 h-4" />
-                  Sign Out
+                  {isSigningOut ? "Departing..." : "Sign Out"}
                 </button>
               </div>
             )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -14,8 +14,24 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sessionUser, setSessionUser] = useState<any>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    async function checkSession() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setSessionUser(user);
+      } catch {
+        setSessionUser(null);
+      } finally {
+        setCheckingSession(false);
+      }
+    }
+    checkSession();
+  }, [supabase]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +57,55 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (checkingSession) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12">
+        <Loader2 className="w-10 h-10 text-purple-500 animate-spin mb-4" />
+        <p className="text-[#8b7faa] text-sm animate-pulse">Sensing your aura...</p>
+      </div>
+    );
+  }
+
+  if (sessionUser) {
+    return (
+      <div className="animate-fade-in-up">
+        <div className="glass-card p-8 md:p-10 text-center">
+          <div className="w-20 h-20 rounded-full bg-[rgba(139,92,246,0.1)] border border-[rgba(139,92,246,0.2)] flex items-center justify-center mx-auto mb-6">
+            <Shield className="w-10 h-10 text-purple-400" />
+          </div>
+          <h1
+            className="text-2xl font-bold text-white mb-3"
+            style={{ fontFamily: "'Cinzel', serif" }}
+          >
+            Session Found
+          </h1>
+          <p className="text-[#8b7faa] text-sm mb-6 leading-relaxed">
+            We recognize your presence as <span className="text-purple-300 font-medium">{sessionUser.email}</span>.<br />
+            No need to re-enter your runes.
+          </p>
+
+          <Link
+            href="/dashboard"
+            className="btn-epic w-full flex items-center justify-center gap-2 !py-4 !rounded-xl"
+          >
+            Enter the Dashboard
+          </Link>
+          
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut();
+              setSessionUser(null);
+              router.refresh();
+            }}
+            className="mt-6 text-[10px] text-[#6b5f7d] hover:text-red-400 uppercase tracking-widest transition-colors font-bold"
+          >
+            Use a different account
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in-up">
@@ -84,8 +149,9 @@ export default function LoginPage() {
               placeholder="adventurer@realm.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
               required
-              className="h-12 rounded-xl"
+              className="h-12 rounded-xl disabled:opacity-50"
             />
           </div>
 
@@ -105,13 +171,15 @@ export default function LoginPage() {
                 placeholder="Enter your secret rune"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
                 required
-                className="h-12 rounded-xl pr-12"
+                className="h-12 rounded-xl pr-12 disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8b7faa] hover:text-purple-400 transition-colors"
+                disabled={loading}
               >
                 {showPassword ? (
                   <EyeOff className="w-4 h-4" />

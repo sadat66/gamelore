@@ -130,8 +130,9 @@ export default function AdminControlPanelPage() {
               <input
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
+                disabled={creating}
                 placeholder="e.g. Hollow Knight"
-                className="w-full rounded-xl bg-[rgba(6,2,15,0.6)] border border-[rgba(139,92,246,0.15)] px-4 py-2.5 text-sm text-[#e8e0f0] placeholder:text-[rgba(139,102,204,0.35)] outline-none focus:border-purple-500/40"
+                className="w-full rounded-xl bg-[rgba(6,2,15,0.6)] border border-[rgba(139,92,246,0.15)] px-4 py-2.5 text-sm text-[#e8e0f0] placeholder:text-[rgba(139,102,204,0.35)] outline-none focus:border-purple-500/40 disabled:opacity-50"
               />
             </div>
             <div>
@@ -142,7 +143,8 @@ export default function AdminControlPanelPage() {
                 type="file"
                 accept="image/*"
                 onChange={(e) => setThumbFile(e.target.files?.[0] ?? null)}
-                className="text-xs text-[#8b7faa] file:mr-3 file:rounded-lg file:border-0 file:bg-purple-600/20 file:px-3 file:py-1.5 file:text-xs file:text-purple-200"
+                disabled={creating}
+                className="text-xs text-[#8b7faa] file:mr-3 file:rounded-lg file:border-0 file:bg-purple-600/20 file:px-3 file:py-1.5 file:text-xs file:text-purple-200 disabled:opacity-30"
               />
             </div>
             <button
@@ -176,11 +178,12 @@ export default function AdminControlPanelPage() {
                   key={g.id}
                   type="button"
                   onClick={() => setSelectedId(g.id)}
+                  disabled={uploading || creating}
                   className={`rounded-2xl border overflow-hidden text-left transition-all ${
                     g.id === selectedId
                       ? "border-purple-500/60 ring-2 ring-purple-500/25 shadow-[0_0_20px_rgba(139,92,246,0.15)]"
                       : "border-[rgba(139,92,246,0.12)] hover:border-[rgba(139,92,246,0.25)]"
-                  } bg-[rgba(15,10,30,0.85)]`}
+                  } bg-[rgba(15,10,30,0.85)] disabled:opacity-40 disabled:cursor-not-allowed`}
                 >
                   <div className="aspect-video bg-[rgba(6,2,15,0.8)] flex items-center justify-center">
                     {g.thumbnail_url ? (
@@ -219,7 +222,8 @@ export default function AdminControlPanelPage() {
                   type="file"
                   accept=".pdf,.docx,.json,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/json"
                   onChange={(e) => setLoreFile(e.target.files?.[0] ?? null)}
-                  className="text-xs text-[#8b7faa] file:mr-3 file:rounded-lg file:border-0 file:bg-purple-600/20 file:px-3 file:py-1.5 file:text-xs file:text-purple-200"
+                  disabled={uploading}
+                  className="text-xs text-[#8b7faa] file:mr-3 file:rounded-lg file:border-0 file:bg-purple-600/20 file:px-3 file:py-1.5 file:text-xs file:text-purple-200 disabled:opacity-30"
                 />
               </div>
               <button

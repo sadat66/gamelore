@@ -83,7 +83,8 @@ export default function SignupPage() {
               💡 Don&apos;t see the email? Check your spam folder or{" "}
               <button
                 onClick={() => setEmailSent(false)}
-                className="text-purple-400 hover:text-purple-300 transition-colors"
+                disabled={loading}
+                className="text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-50"
               >
                 try again
               </button>
@@ -143,8 +144,9 @@ export default function SignupPage() {
               placeholder="adventurer@realm.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
               required
-              className="h-12 rounded-xl"
+              className="h-12 rounded-xl disabled:opacity-50"
             />
           </div>
 
@@ -162,14 +164,16 @@ export default function SignupPage() {
                 placeholder="Create a secret rune (min 6 chars)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
                 required
                 minLength={6}
-                className="h-12 rounded-xl pr-12"
+                className="h-12 rounded-xl pr-12 disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8b7faa] hover:text-purple-400 transition-colors"
+                disabled={loading}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8b7faa] hover:text-purple-400 transition-colors disabled:opacity-50"
               >
                 {showPassword ? (
                   <EyeOff className="w-4 h-4" />
@@ -194,14 +198,16 @@ export default function SignupPage() {
                 placeholder="Repeat your secret rune"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
                 required
                 minLength={6}
-                className="h-12 rounded-xl pr-12"
+                className="h-12 rounded-xl pr-12 disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8b7faa] hover:text-purple-400 transition-colors"
+                disabled={loading}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8b7faa] hover:text-purple-400 transition-colors disabled:opacity-50"
               >
                 {showConfirm ? (
                   <EyeOff className="w-4 h-4" />
