@@ -4,7 +4,7 @@ GameLore is a web app where signed-in users pick a game and ask questions about 
 
 ## Features
 
-- **RAG pipeline**: PDF/Word (and similar) → extract → chunk → embed → store → vector search → LLM reply  
+- **RAG pipeline**: PDF/Word/JSON (and similar) → extract → chunk → embed → store → vector search → LLM reply  
 - **Supabase**: Auth, Postgres + **Row Level Security**, Storage for source files  
 - **Dashboard**: Game picker, lore chat UI, client + server **rate limiting** on chat  
 - **Admin**: Manage games and ingest lore documents (see migrations and API routes under `src/app/api/admin/`)  
