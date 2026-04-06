@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSubmitLock } from "@/hooks/use-submit-lock";
 import Link from "next/link";
-import { ArrowLeft, Gamepad2, Loader2, Upload } from "lucide-react";
+import { ArrowLeft, Gamepad2, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 import { GAME_GENRES, isCanonicalGenre } from "@/lib/game-genres";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 
 type GameRow = {
   id: string;
@@ -224,7 +226,7 @@ export default function AdminControlPanelPage() {
               disabled={creating}
               className="rounded-xl bg-gradient-to-br from-purple-600 to-purple-700 px-5 py-2.5 text-sm text-white disabled:opacity-40 flex items-center gap-2"
             >
-              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {creating ? <Spinner size="sm" /> : null}
               Create game
             </button>
           </form>
@@ -235,9 +237,14 @@ export default function AdminControlPanelPage() {
             Select game & upload lore
           </h2>
           {loadingGames ? (
-            <div className="flex items-center gap-2 text-sm text-[#8b7faa] py-8 justify-center">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Loading games…
+            <div
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 py-4"
+              role="status"
+              aria-label="Loading games"
+            >
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-video rounded-2xl" />
+              ))}
             </div>
           ) : games.length === 0 ? (
             <p className="text-sm text-[#8b7faa] py-6">
@@ -317,7 +324,7 @@ export default function AdminControlPanelPage() {
                   disabled={savingGenre}
                   className="rounded-xl bg-[rgba(139,92,246,0.2)] border border-[rgba(139,92,246,0.25)] px-4 py-2.5 text-sm text-[#e8e0f0] hover:bg-[rgba(139,92,246,0.28)] disabled:opacity-40 flex items-center justify-center gap-2 shrink-0"
                 >
-                  {savingGenre ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  {savingGenre ? <Spinner size="sm" /> : null}
                   Save genre
                 </button>
               </div>
@@ -351,7 +358,7 @@ export default function AdminControlPanelPage() {
                 className="rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-700 px-5 py-2.5 text-sm text-white disabled:opacity-40 flex items-center gap-2"
               >
                 {uploading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Spinner size="sm" />
                 ) : (
                   <Upload className="w-4 h-4" />
                 )}

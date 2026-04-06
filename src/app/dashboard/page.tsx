@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { flushSync } from "react-dom";
 import {
   Send,
   Sparkles,
   Bot,
   User,
-  Loader2,
   Scroll,
   ArrowLeft,
   Timer,
@@ -17,6 +17,8 @@ import {
   getChatRateSecondsLeft,
 } from "@/lib/chat-rate-constants";
 import { GAME_GENRES, extraGenresFromGames } from "@/lib/game-genres";
+import { useSubmitLock } from "@/hooks/use-submit-lock";
+import { Spinner, SpinnerBlock } from "@/components/ui/spinner";
 
 const GENRE_FILTER_NONE = "__none__";
 
@@ -60,6 +62,10 @@ export default function DashboardPage() {
   const [genreFilter, setGenreFilter] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [realmNavBusy, setRealmNavBusy] = useState(false);
+  const backNavLockRef = useRef(false);
+  const sendChatBtnRef = useRef<HTMLButtonElement>(null);
+  const chatSubmitLock = useSubmitLock();
 
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 1000);
@@ -112,6 +118,33 @@ export default function DashboardPage() {
     void loadGames();
   }, [loadGames]);
 
+  useEffect(() => {
+    if (gameId === "") {
+      setRealmNavBusy(false);
+    }
+  }, [gameId]);
+
+  const selectRealm = useCallback(
+    (id: string) => {
+      if (realmNavBusy) return;
+      flushSync(() => {
+        setRealmNavBusy(true);
+        setGameId(id);
+      });
+    },
+    [realmNavBusy]
+  );
+
+  const returnToRealmSelection = useCallback(() => {
+    if (backNavLockRef.current) return;
+    backNavLockRef.current = true;
+    setGameId("");
+    setMessages(WELCOME_MESSAGES);
+    queueMicrotask(() => {
+      backNavLockRef.current = false;
+    });
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -123,74 +156,86 @@ export default function DashboardPage() {
       toast.error("Select a game first");
       return;
     }
-
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      content: input.trim(),
-      timestamp: new Date(),
-    };
-
-    const nextMessages = [...messages, userMessage];
-    setMessages(nextMessages);
-    setInput("");
-    setIsLoading(true);
+    if (!chatSubmitLock.acquire()) return;
+    const sendBtn = sendChatBtnRef.current;
+    if (sendBtn?.disabled) {
+      chatSubmitLock.release();
+      return;
+    }
+    if (sendBtn) sendBtn.disabled = true;
 
     try {
-      const payloadMessages = nextMessages
-        .filter((m) => m.role === "user" || m.role === "assistant")
-        .map((m) => ({ role: m.role, content: m.content }));
+      const userMessage: Message = {
+        id: `user-${Date.now()}`,
+        role: "user",
+        content: input.trim(),
+        timestamp: new Date(),
+      };
 
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          gameId,
-          messages: payloadMessages,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        if (res.status === 429) {
-          const retryRaw = res.headers.get("Retry-After");
-          let retrySec = retryRaw ? Number.parseInt(retryRaw, 10) : NaN;
-          if (!Number.isFinite(retrySec) || retrySec < 1) retrySec = 60;
-          setLockUntilServer(Date.now() + retrySec * 1000);
-          const msg =
-            typeof data.error === "string"
-              ? data.error
-              : "Too many messages per minute. Please wait before sending another.";
-          toast.error(msg);
-          return;
+      const nextMessages = [...messages, userMessage];
+      setMessages(nextMessages);
+      setInput("");
+      setIsLoading(true);
+
+      try {
+        const payloadMessages = nextMessages
+          .filter((m) => m.role === "user" || m.role === "assistant")
+          .map((m) => ({ role: m.role, content: m.content }));
+
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            gameId,
+            messages: payloadMessages,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          if (res.status === 429) {
+            const retryRaw = res.headers.get("Retry-After");
+            let retrySec = retryRaw ? Number.parseInt(retryRaw, 10) : NaN;
+            if (!Number.isFinite(retrySec) || retrySec < 1) retrySec = 60;
+            setLockUntilServer(Date.now() + retrySec * 1000);
+            const msg =
+              typeof data.error === "string"
+                ? data.error
+                : "Too many messages per minute. Please wait before sending another.";
+            toast.error(msg);
+            return;
+          }
+          throw new Error(data.error ?? "Chat request failed");
         }
-        throw new Error(data.error ?? "Chat request failed");
+
+        const w = CHAT_RATE_WINDOW_MS_DEFAULT;
+        setSendTimestamps((prev) => [
+          ...prev.filter((t) => Date.now() - t < w),
+          Date.now(),
+        ]);
+
+        const aiMessage: Message = {
+          id: `ai-${Date.now()}`,
+          role: "assistant",
+          content: data.reply as string,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, aiMessage]);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Chat failed");
+        const errMsg: Message = {
+          id: `err-${Date.now()}`,
+          role: "assistant",
+          content:
+            "I could not reach the lore service. Check GROQ_API_KEY, Supabase, and that the latest pgvector migration (768-dim embeddings) is applied.",
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, errMsg]);
+      } finally {
+        setIsLoading(false);
       }
-
-      const w = CHAT_RATE_WINDOW_MS_DEFAULT;
-      setSendTimestamps((prev) => [
-        ...prev.filter((t) => Date.now() - t < w),
-        Date.now(),
-      ]);
-
-      const aiMessage: Message = {
-        id: `ai-${Date.now()}`,
-        role: "assistant",
-        content: data.reply as string,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMessage]);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Chat failed");
-      const errMsg: Message = {
-        id: `err-${Date.now()}`,
-        role: "assistant",
-        content:
-          "I could not reach the lore service. Check GROQ_API_KEY, Supabase, and that the latest pgvector migration (768-dim embeddings) is applied.",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errMsg]);
     } finally {
-      setIsLoading(false);
+      if (sendBtn) sendBtn.disabled = false;
+      chatSubmitLock.release();
     }
   };
 
@@ -237,8 +282,7 @@ export default function DashboardPage() {
   if (gamesLoading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 text-purple-500 animate-spin mb-4" />
-        <p className="text-[#8b7faa] text-sm animate-pulse">Scrying the realms...</p>
+        <SpinnerBlock label="Scrying the realms..." />
       </div>
     );
   }
@@ -316,12 +360,19 @@ export default function DashboardPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
+            <div
+              className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12 ${
+                realmNavBusy ? "pointer-events-none opacity-70" : ""
+              }`}
+            >
               {displayGames.map((g) => (
                 <button
                   key={g.id}
-                  onClick={() => setGameId(g.id)}
-                  className="group relative flex flex-col items-stretch text-left transition-all duration-300 hover:-translate-y-2 focus:outline-none"
+                  type="button"
+                  disabled={realmNavBusy}
+                  aria-busy={realmNavBusy}
+                  onClick={() => selectRealm(g.id)}
+                  className="group relative flex flex-col items-stretch text-left transition-all duration-300 hover:-translate-y-2 focus:outline-none disabled:cursor-not-allowed disabled:hover:translate-y-0"
                 >
                   <div className="aspect-[16/9] rounded-2xl overflow-hidden border border-[rgba(139,92,246,0.2)] bg-[#0f0a1e] relative">
                     {g.thumbnail_url ? (
@@ -367,10 +418,8 @@ export default function DashboardPage() {
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 overflow-hidden">
             <button
-              onClick={() => {
-                setGameId("");
-                setMessages(WELCOME_MESSAGES);
-              }}
+              type="button"
+              onClick={returnToRealmSelection}
               className="p-2 rounded-lg hover:bg-white/5 text-[#8b7faa] hover:text-white transition-colors flex-shrink-0"
               title="Return to selection"
             >
@@ -439,7 +488,7 @@ export default function DashboardPage() {
             </div>
             <div className="chat-bubble px-5 py-4">
               <div className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+                <Spinner size="sm" />
                 <span className="text-sm text-[#8b7faa]">
                   Retrieving lore & thinking…
                 </span>
@@ -472,6 +521,7 @@ export default function DashboardPage() {
               style={{ minHeight: "44px" }}
             />
             <button
+              ref={sendChatBtnRef}
               type="submit"
               disabled={
                 !input.trim() ||
