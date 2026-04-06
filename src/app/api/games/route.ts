@@ -14,7 +14,8 @@ export async function GET() {
 
   const { data: games, error } = await supabase
     .from("games")
-    .select("id, slug, title, thumbnail_path")
+    .select("id, slug, title, thumbnail_path, genre")
+    .order("genre", { ascending: true, nullsFirst: false })
     .order("title");
 
   if (error) {
@@ -26,6 +27,7 @@ export async function GET() {
       id: g.id,
       slug: g.slug,
       title: g.title,
+      genre: g.genre ?? null,
       thumbnail_url: publicThumbnailUrl(g.thumbnail_path),
     })),
   });

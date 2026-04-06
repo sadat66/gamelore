@@ -10,6 +10,7 @@ type GameRow = {
   id: string;
   title: string;
   slug: string;
+  genre: string | null;
   thumbnail_url: string | null;
 };
 
@@ -18,12 +19,16 @@ export default function AdminControlPanelPage() {
   const [loadingGames, setLoadingGames] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
+  const [newGenre, setNewGenre] = useState("");
   const [thumbFile, setThumbFile] = useState<File | null>(null);
   const [creating, setCreating] = useState(false);
   const [loreFile, setLoreFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [editGenre, setEditGenre] = useState("");
+  const [savingGenre, setSavingGenre] = useState(false);
   const createLock = useSubmitLock();
   const uploadLock = useSubmitLock();
+  const genreLock = useSubmitLock();
 
   const loadGames = useCallback(async () => {
     setLoadingGames(true);
@@ -49,6 +54,10 @@ export default function AdminControlPanelPage() {
 
   const selected = games.find((g) => g.id === selectedId) ?? null;
 
+  useEffect(() => {
+    setEditGenre(selected?.genre ?? "");
+  }, [selectedId, selected?.genre]);
+
   async function handleCreateGame(e: React.FormEvent) {
     e.preventDefault();
     if (!newTitle.trim()) {
@@ -60,12 +69,14 @@ export default function AdminControlPanelPage() {
     try {
       const fd = new FormData();
       fd.append("title", newTitle.trim());
+      if (newGenre.trim()) fd.append("genre", newGenre.trim());
       if (thumbFile) fd.append("thumbnail", thumbFile);
       const res = await fetch("/api/admin/games", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Create failed");
       toast.success(`Created “${data.game.title}”`);
       setNewTitle("");
+      setNewGenre("");
       setThumbFile(null);
       await loadGames();
       setSelectedId(data.game.id);
@@ -106,6 +117,36 @@ export default function AdminControlPanelPage() {
     }
   }
 
+  async function handleSaveGenre(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedId) {
+      toast.error("Select a game");
+      return;
+    }
+    if (!genreLock.acquire()) return;
+    setSavingGenre(true);
+    try {
+      const trimmed = editGenre.trim();
+      const res = await fetch("/api/admin/games", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameId: selectedId,
+          genre: trimmed.length > 0 ? trimmed : null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not save genre");
+      toast.success("Genre saved");
+      await loadGames();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save genre");
+    } finally {
+      genreLock.release();
+      setSavingGenre(false);
+    }
+  }
+
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       <div className="border-b border-[rgba(139,92,246,0.15)] px-4 md:px-6 py-4 flex items-center gap-4">
@@ -141,6 +182,31 @@ export default function AdminControlPanelPage() {
                 placeholder="e.g. Hollow Knight"
                 className="w-full rounded-xl bg-[rgba(6,2,15,0.6)] border border-[rgba(139,92,246,0.15)] px-4 py-2.5 text-sm text-[#e8e0f0] placeholder:text-[rgba(139,102,204,0.35)] outline-none focus:border-purple-500/40 disabled:opacity-50"
               />
+            </div>
+            <div>
+              <label className="block text-xs text-[#8b7faa] mb-1.5">
+                Genre (optional)
+              </label>
+              <input
+                value={newGenre}
+                onChange={(e) => setNewGenre(e.target.value)}
+                disabled={creating}
+                placeholder="e.g. Metroidvania, RPG, FPS"
+                list="game-genre-suggestions"
+                className="w-full rounded-xl bg-[rgba(6,2,15,0.6)] border border-[rgba(139,92,246,0.15)] px-4 py-2.5 text-sm text-[#e8e0f0] placeholder:text-[rgba(139,102,204,0.35)] outline-none focus:border-purple-500/40 disabled:opacity-50"
+              />
+              <datalist id="game-genre-suggestions">
+                <option value="Action" />
+                <option value="Adventure" />
+                <option value="RPG" />
+                <option value="Strategy" />
+                <option value="Simulation" />
+                <option value="Puzzle" />
+                <option value="Horror" />
+                <option value="FPS" />
+                <option value="Metroidvania" />
+                <option value="Roguelike" />
+              </datalist>
             </div>
             <div>
               <label className="block text-xs text-[#8b7faa] mb-1.5">
@@ -204,13 +270,49 @@ export default function AdminControlPanelPage() {
                       <Gamepad2 className="w-10 h-10 text-[rgba(139,92,246,0.25)]" />
                     )}
                   </div>
-                  <p className="px-3 py-2 text-xs text-[#e8e0f0] font-medium truncate">
-                    {g.title}
-                  </p>
+                  <div className="px-3 py-2 min-h-[3rem]">
+                    <p className="text-xs text-[#e8e0f0] font-medium truncate">{g.title}</p>
+                    {g.genre ? (
+                      <p className="text-[10px] text-[#8b7faa] truncate mt-0.5">{g.genre}</p>
+                    ) : null}
+                  </div>
                 </button>
               ))}
             </div>
           )}
+
+          {selected ? (
+            <form
+              onSubmit={handleSaveGenre}
+              className="glass-card !rounded-2xl p-5 space-y-3 !bg-[rgba(15,10,30,0.85)] border border-[rgba(139,92,246,0.12)] mt-4"
+            >
+              <p className="text-sm text-[#c4b5fd]">
+                <span className="text-white font-medium">{selected.title}</span>
+                <span className="text-[#8b7faa]"> — genre</span>
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+                <div className="flex-1">
+                  <label className="block text-xs text-[#8b7faa] mb-1.5">Genre</label>
+                  <input
+                    value={editGenre}
+                    onChange={(e) => setEditGenre(e.target.value)}
+                    disabled={savingGenre}
+                    placeholder="Same as when creating; leave empty to clear"
+                    list="game-genre-suggestions"
+                    className="w-full rounded-xl bg-[rgba(6,2,15,0.6)] border border-[rgba(139,92,246,0.15)] px-4 py-2.5 text-sm text-[#e8e0f0] placeholder:text-[rgba(139,102,204,0.35)] outline-none focus:border-purple-500/40 disabled:opacity-50"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={savingGenre}
+                  className="rounded-xl bg-[rgba(139,92,246,0.2)] border border-[rgba(139,92,246,0.25)] px-4 py-2.5 text-sm text-[#e8e0f0] hover:bg-[rgba(139,92,246,0.28)] disabled:opacity-40 flex items-center justify-center gap-2 shrink-0"
+                >
+                  {savingGenre ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  Save genre
+                </button>
+              </div>
+            </form>
+          ) : null}
 
           {selected ? (
             <form

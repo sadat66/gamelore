@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   Send,
   Sparkles,
@@ -27,8 +27,11 @@ interface Message {
 type GameOption = {
   id: string;
   title: string;
+  genre: string | null;
   thumbnail_url: string | null;
 };
+
+type GameSort = "genre" | "title";
 
 const WELCOME_MESSAGES: Message[] = [
   {
@@ -50,6 +53,7 @@ export default function DashboardPage() {
   const [sendTimestamps, setSendTimestamps] = useState<number[]>([]);
   const [lockUntilServer, setLockUntilServer] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
+  const [gameSort, setGameSort] = useState<GameSort>("genre");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -195,6 +199,28 @@ export default function DashboardPage() {
 
   const currentGame = games.find((g) => g.id === gameId);
 
+  const displayGames = useMemo(() => {
+    const list = [...games];
+    const cmpGenre = (a: GameOption, b: GameOption) => {
+      const sa = (a.genre ?? "").trim();
+      const sb = (b.genre ?? "").trim();
+      if (!sa && !sb) return 0;
+      if (!sa) return 1;
+      if (!sb) return -1;
+      const g = sa.localeCompare(sb, undefined, { sensitivity: "base" });
+      if (g !== 0) return g;
+      return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+    };
+    if (gameSort === "title") {
+      list.sort((a, b) =>
+        a.title.localeCompare(b.title, undefined, { sensitivity: "base" })
+      );
+    } else {
+      list.sort(cmpGenre);
+    }
+    return list;
+  }, [games, gameSort]);
+
   if (gamesLoading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center">
@@ -218,6 +244,22 @@ export default function DashboardPage() {
             <p className="text-[#8b7faa]">Choose a game to begin your lore quest</p>
           </div>
 
+          {games.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+              <label className="text-xs text-[#8b7faa] uppercase tracking-wider">
+                Sort by
+              </label>
+              <select
+                value={gameSort}
+                onChange={(e) => setGameSort(e.target.value as GameSort)}
+                className="rounded-xl bg-[rgba(15,10,30,0.9)] border border-[rgba(139,92,246,0.2)] text-sm text-[#e8e0f0] px-3 py-2 outline-none focus:border-purple-500/50"
+              >
+                <option value="genre">Genre, then title</option>
+                <option value="title">Title (A–Z)</option>
+              </select>
+            </div>
+          ) : null}
+
           {games.length === 0 ? (
             <div className="glass-card p-12 text-center border-dashed border-2 border-[rgba(139,92,246,0.15)] bg-transparent">
               <Scroll className="w-12 h-12 text-[rgba(139,92,246,0.3)] mx-auto mb-4" />
@@ -227,7 +269,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
-              {games.map((g) => (
+              {displayGames.map((g) => (
                 <button
                   key={g.id}
                   onClick={() => setGameId(g.id)}
@@ -252,6 +294,9 @@ export default function DashboardPage() {
                     <h3 className="text-lg font-semibold text-white group-hover:text-purple-300 transition-colors truncate">
                       {g.title}
                     </h3>
+                    {g.genre ? (
+                      <p className="text-xs text-[#8b7faa] mt-1 truncate">{g.genre}</p>
+                    ) : null}
                     <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <span className="text-[10px] uppercase tracking-widest text-purple-400 font-bold">
                         Enter Realm
