@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { embedQuery } from "@/lib/rag/embeddings";
+import { takeChatRateSlot } from "@/lib/chat-rate-limit";
 import { groqLoreReply, type ChatTurn } from "@/lib/groq-chat";
 
 export const runtime = "nodejs";
@@ -59,6 +60,19 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Include at least one user message" },
       { status: 400 }
+    );
+  }
+
+  const rate = takeChatRateSlot(user.id);
+  if (!rate.ok) {
+    return NextResponse.json(
+      {
+        error: `Too many messages. Try again in ${rate.retryAfterSec} second${rate.retryAfterSec === 1 ? "" : "s"}.`,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rate.retryAfterSec) },
+      }
     );
   }
 

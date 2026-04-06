@@ -7,11 +7,15 @@ import {
   Bot,
   User,
   Loader2,
-  ChevronDown,
   Scroll,
   ArrowLeft,
+  Timer,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import {
+  CHAT_RATE_WINDOW_MS_DEFAULT,
+  getChatRateSecondsLeft,
+} from "@/lib/chat-rate-constants";
 
 interface Message {
   id: string;
@@ -43,8 +47,31 @@ export default function DashboardPage() {
   const [messages, setMessages] = useState<Message[]>(WELCOME_MESSAGES);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sendTimestamps, setSendTimestamps] = useState<number[]>([]);
+  const [lockUntilServer, setLockUntilServer] = useState<number | null>(null);
+  const [tick, setTick] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (lockUntilServer != null && Date.now() >= lockUntilServer) {
+      setLockUntilServer(null);
+    }
+  }, [lockUntilServer, tick]);
+
+  const now = Date.now();
+  const clientCooldownSec = getChatRateSecondsLeft(sendTimestamps, now);
+  const serverCooldownSec =
+    lockUntilServer != null && lockUntilServer > now
+      ? Math.max(0, Math.ceil((lockUntilServer - now) / 1000))
+      : 0;
+  const rateLimitSecondsLeft = Math.max(clientCooldownSec, serverCooldownSec);
+  void tick;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -80,6 +107,10 @@ export default function DashboardPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
+    if (rateLimitSecondsLeft > 0) {
+      toast.error(`Wait ${rateLimitSecondsLeft}s before sending another message.`);
+      return;
+    }
     if (!gameId) {
       toast.error("Select a game first");
       return;
@@ -111,7 +142,27 @@ export default function DashboardPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Chat request failed");
+      if (!res.ok) {
+        if (res.status === 429) {
+          const retryRaw = res.headers.get("Retry-After");
+          let retrySec = retryRaw ? Number.parseInt(retryRaw, 10) : NaN;
+          if (!Number.isFinite(retrySec) || retrySec < 1) retrySec = 60;
+          setLockUntilServer(Date.now() + retrySec * 1000);
+          const msg =
+            typeof data.error === "string"
+              ? data.error
+              : "Too many messages per minute. Please wait before sending another.";
+          toast.error(msg);
+          return;
+        }
+        throw new Error(data.error ?? "Chat request failed");
+      }
+
+      const w = CHAT_RATE_WINDOW_MS_DEFAULT;
+      setSendTimestamps((prev) => [
+        ...prev.filter((t) => Date.now() - t < w),
+        Date.now(),
+      ]);
 
       const aiMessage: Message = {
         id: `ai-${Date.now()}`,
@@ -329,17 +380,34 @@ export default function DashboardPage() {
             />
             <button
               type="submit"
-              disabled={!input.trim() || isLoading || !gameId}
+              disabled={
+                !input.trim() ||
+                isLoading ||
+                !gameId ||
+                rateLimitSecondsLeft > 0
+              }
               className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-purple-700 flex items-center justify-center text-white disabled:opacity-30 disabled:cursor-not-allowed hover:from-purple-500 hover:to-purple-600 transition-all duration-200"
             >
               <Send className="w-4 h-4" />
             </button>
           </div>
-          <div className="flex items-center justify-center gap-2 mt-2">
-            <Sparkles className="w-3 h-3 text-[rgba(139,92,246,0.3)]" />
-            <p className="text-[10px] text-[rgba(139,92,246,0.3)]">
-              Answers use RAG over your uploads; they are not general web knowledge.
-            </p>
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+            {rateLimitSecondsLeft > 0 ? (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(236,72,153,0.35)] bg-[rgba(236,72,153,0.12)] px-2.5 py-1 text-[11px] font-medium text-pink-200"
+                role="status"
+                aria-live="polite"
+              >
+                <Timer className="w-3.5 h-3.5 shrink-0 opacity-90" />
+                Next message in {rateLimitSecondsLeft}s
+              </span>
+            ) : null}
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-3 h-3 text-[rgba(139,92,246,0.3)]" />
+              <p className="text-[10px] text-[rgba(139,92,246,0.3)]">
+                Answers use RAG over your uploads; they are not general web knowledge.
+              </p>
+            </div>
           </div>
         </form>
       </div>
