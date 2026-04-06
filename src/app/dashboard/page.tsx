@@ -254,7 +254,7 @@ export default function DashboardPage() {
   );
 
   const displayGames = useMemo(() => {
-    let list = games.filter((g) => {
+    const list = games.filter((g) => {
       if (genreFilter === "") return true;
       if (genreFilter === GENRE_FILTER_NONE) return !(g.genre ?? "").trim();
       return g.genre === genreFilter;
