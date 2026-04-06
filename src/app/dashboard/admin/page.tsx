@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSubmitLock } from "@/hooks/use-submit-lock";
 import Link from "next/link";
 import { ArrowLeft, Gamepad2, Loader2, Upload } from "lucide-react";
 import toast from "react-hot-toast";
@@ -21,6 +22,8 @@ export default function AdminControlPanelPage() {
   const [creating, setCreating] = useState(false);
   const [loreFile, setLoreFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const createLock = useSubmitLock();
+  const uploadLock = useSubmitLock();
 
   const loadGames = useCallback(async () => {
     setLoadingGames(true);
@@ -52,6 +55,7 @@ export default function AdminControlPanelPage() {
       toast.error("Enter a game title");
       return;
     }
+    if (!createLock.acquire()) return;
     setCreating(true);
     try {
       const fd = new FormData();
@@ -68,6 +72,7 @@ export default function AdminControlPanelPage() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Create failed");
     } finally {
+      createLock.release();
       setCreating(false);
     }
   }
@@ -82,6 +87,7 @@ export default function AdminControlPanelPage() {
       toast.error("Choose a PDF or DOCX file");
       return;
     }
+    if (!uploadLock.acquire()) return;
     setUploading(true);
     try {
       const fd = new FormData();
@@ -95,6 +101,7 @@ export default function AdminControlPanelPage() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
+      uploadLock.release();
       setUploading(false);
     }
   }

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSubmitLock } from "@/hooks/use-submit-lock";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,10 +16,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [sessionUser, setSessionUser] = useState<any>(null);
+  const [sessionUser, setSessionUser] = useState<User | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [switchingAccount, setSwitchingAccount] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const submitLock = useSubmitLock();
+  const switchAccountLock = useSubmitLock();
 
   useEffect(() => {
     async function checkSession() {
@@ -35,6 +40,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!submitLock.acquire()) return;
     setLoading(true);
 
     try {
@@ -54,6 +60,7 @@ export default function LoginPage() {
     } catch {
       toast.error("An unexpected error occurred");
     } finally {
+      submitLock.release();
       setLoading(false);
     }
   };
@@ -93,14 +100,25 @@ export default function LoginPage() {
           </Link>
           
           <button
+            type="button"
             onClick={async () => {
-              await supabase.auth.signOut();
-              setSessionUser(null);
-              router.refresh();
+              if (!switchAccountLock.acquire()) return;
+              setSwitchingAccount(true);
+              try {
+                await supabase.auth.signOut();
+                setSessionUser(null);
+                router.refresh();
+              } catch {
+                toast.error("Could not switch account. Try again.");
+              } finally {
+                switchAccountLock.release();
+                setSwitchingAccount(false);
+              }
             }}
-            className="mt-6 text-[10px] text-[#6b5f7d] hover:text-red-400 uppercase tracking-widest transition-colors font-bold"
+            disabled={switchingAccount}
+            className="mt-6 text-[10px] text-[#6b5f7d] hover:text-red-400 uppercase tracking-widest transition-colors font-bold disabled:opacity-40 disabled:pointer-events-none"
           >
-            Use a different account
+            {switchingAccount ? "Switching…" : "Use a different account"}
           </button>
         </div>
       </div>
