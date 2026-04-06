@@ -2,14 +2,21 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Shield, Menu, X, Swords } from "lucide-react";
+import { Shield, Menu, X, Swords, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [realmNavigating, setRealmNavigating] = useState(false);
   const supabase = createClient();
+
+  const goToRealm = () => {
+    if (realmNavigating) return;
+    setRealmNavigating(true);
+    window.location.assign("/dashboard");
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -63,10 +70,20 @@ export default function Navbar() {
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-4">
           {user ? (
-            <Link href="/dashboard" className="btn-epic !py-2.5 !px-6 !text-sm flex items-center gap-2 shadow-[0_0_15px_rgba(139,92,246,0.3)]">
-              <Swords className="w-4 h-4" />
-              Return to Realm
-            </Link>
+            <button
+              type="button"
+              onClick={goToRealm}
+              disabled={realmNavigating}
+              aria-busy={realmNavigating}
+              className="btn-epic !py-2.5 !px-6 !text-sm flex items-center gap-2 shadow-[0_0_15px_rgba(139,92,246,0.3)] disabled:opacity-70 disabled:pointer-events-none disabled:cursor-wait"
+            >
+              {realmNavigating ? (
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden />
+              ) : (
+                <Swords className="w-4 h-4 shrink-0" aria-hidden />
+              )}
+              {realmNavigating ? "Entering…" : "Return to Realm"}
+            </button>
           ) : (
             <>
               <Link href="/login" className="text-sm text-[#c4b5fd] hover:text-white transition-colors">Sign In</Link>
@@ -93,10 +110,23 @@ export default function Navbar() {
           
           <div className="pt-10 flex flex-col gap-4">
             {user ? (
-              <Link href="/dashboard" onClick={toggleMenu} className="btn-epic py-5 rounded-2xl text-xl flex items-center justify-center gap-3">
-                <Swords className="w-6 h-6" />
-                Return to Realm
-              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  goToRealm();
+                }}
+                disabled={realmNavigating}
+                aria-busy={realmNavigating}
+                className="btn-epic py-5 rounded-2xl text-xl flex items-center justify-center gap-3 w-full disabled:opacity-70 disabled:pointer-events-none disabled:cursor-wait"
+              >
+                {realmNavigating ? (
+                  <Loader2 className="w-6 h-6 animate-spin shrink-0" aria-hidden />
+                ) : (
+                  <Swords className="w-6 h-6 shrink-0" aria-hidden />
+                )}
+                {realmNavigating ? "Entering…" : "Return to Realm"}
+              </button>
             ) : (
               <>
                 <Link href="/login" onClick={toggleMenu} className="text-purple-300 font-medium py-3 text-lg">Sign In</Link>

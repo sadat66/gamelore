@@ -1,75 +1,43 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSubmitLock } from "@/hooks/use-submit-lock";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import type { User } from "@supabase/supabase-js";
+import { Shield, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Shield, LogIn, Loader2, Eye, EyeOff } from "lucide-react";
-import toast from "react-hot-toast";
+import type { User } from "@supabase/supabase-js";
+import { LoginCredentialsForm } from "@/components/auth/login-credentials-form";
+import { SessionResumeCard } from "@/components/auth/session-resume-card";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [sessionUser, setSessionUser] = useState<User | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [switchingAccount, setSwitchingAccount] = useState(false);
-  const router = useRouter();
   const supabase = createClient();
-  const submitLock = useSubmitLock();
-  const switchAccountLock = useSubmitLock();
 
   useEffect(() => {
+    let cancelled = false;
     async function checkSession() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        setSessionUser(user);
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!cancelled) setSessionUser(user);
       } catch {
-        setSessionUser(null);
+        if (!cancelled) setSessionUser(null);
       } finally {
-        setCheckingSession(false);
+        if (!cancelled) setCheckingSession(false);
       }
     }
-    checkSession();
+    void checkSession();
+    return () => {
+      cancelled = true;
+    };
   }, [supabase]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!submitLock.acquire()) return;
-    setLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-
-      toast.success("Welcome back, adventurer!");
-      router.push("/dashboard");
-      router.refresh();
-    } catch {
-      toast.error("An unexpected error occurred");
-    } finally {
-      submitLock.release();
-      setLoading(false);
-    }
-  };
 
   if (checkingSession) {
     return (
       <div className="flex flex-col items-center justify-center p-12">
         <Loader2 className="w-10 h-10 text-purple-500 animate-spin mb-4" />
-        <p className="text-[#8b7faa] text-sm animate-pulse">Sensing your aura...</p>
+        <p className="text-[#8b7faa] text-sm animate-pulse">Sensing your aura…</p>
       </div>
     );
   }
@@ -77,58 +45,17 @@ export default function LoginPage() {
   if (sessionUser) {
     return (
       <div className="animate-fade-in-up">
-        <div className="glass-card p-8 md:p-10 text-center">
-          <div className="w-20 h-20 rounded-full bg-[rgba(139,92,246,0.1)] border border-[rgba(139,92,246,0.2)] flex items-center justify-center mx-auto mb-6">
-            <Shield className="w-10 h-10 text-purple-400" />
-          </div>
-          <h1
-            className="text-2xl font-bold text-white mb-3"
-            style={{ fontFamily: "'Cinzel', serif" }}
-          >
-            Session Found
-          </h1>
-          <p className="text-[#8b7faa] text-sm mb-6 leading-relaxed">
-            We recognize your presence as <span className="text-purple-300 font-medium">{sessionUser.email}</span>.<br />
-            No need to re-enter your runes.
-          </p>
-
-          <Link
-            href="/dashboard"
-            className="btn-epic w-full flex items-center justify-center gap-2 !py-4 !rounded-xl"
-          >
-            Enter the Dashboard
-          </Link>
-          
-          <button
-            type="button"
-            onClick={async () => {
-              if (!switchAccountLock.acquire()) return;
-              setSwitchingAccount(true);
-              try {
-                await supabase.auth.signOut();
-                setSessionUser(null);
-                router.refresh();
-              } catch {
-                toast.error("Could not switch account. Try again.");
-              } finally {
-                switchAccountLock.release();
-                setSwitchingAccount(false);
-              }
-            }}
-            disabled={switchingAccount}
-            className="mt-6 text-[10px] text-[#6b5f7d] hover:text-red-400 uppercase tracking-widest transition-colors font-bold disabled:opacity-40 disabled:pointer-events-none"
-          >
-            {switchingAccount ? "Switching…" : "Use a different account"}
-          </button>
-        </div>
+        <SessionResumeCard
+          user={sessionUser}
+          onSignedOut={() => setSessionUser(null)}
+        />
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in-up">
-      {/* Mobile logo */}
-      <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
+    <div className="animate-fade-in-up space-y-8">
+      <div className="lg:hidden flex items-center justify-center gap-3">
         <Link href="/" className="flex items-center gap-3">
           <Shield className="w-8 h-8 text-purple-500" />
           <span
@@ -140,102 +67,7 @@ export default function LoginPage() {
         </Link>
       </div>
 
-      <div className="glass-card p-8 md:p-10">
-        <div className="text-center mb-8">
-          <h1
-            className="text-2xl font-bold text-white mb-2"
-            style={{ fontFamily: "'Cinzel', serif" }}
-          >
-            Welcome Back
-          </h1>
-          <p className="text-[#8b7faa] text-sm">
-            Sign in to continue your quest
-          </p>
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div className="space-y-2">
-            <Label
-              htmlFor="login-email"
-              className="text-sm font-medium text-[#c4b5fd]"
-            >
-              Email Address
-            </Label>
-            <Input
-              id="login-email"
-              type="email"
-              placeholder="adventurer@realm.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-              required
-              className="h-12 rounded-xl disabled:opacity-50"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label
-                htmlFor="login-password"
-                className="text-sm font-medium text-[#c4b5fd]"
-              >
-                Password
-              </Label>
-            </div>
-            <div className="relative">
-              <Input
-                id="login-password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your secret rune"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-                required
-                className="h-12 rounded-xl pr-12 disabled:opacity-50"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8b7faa] hover:text-purple-400 transition-colors"
-                disabled={loading}
-              >
-                {showPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-epic w-full flex items-center justify-center gap-2 !py-3.5 !rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <>
-                <LogIn className="w-5 h-5" />
-                Enter the Realm
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-[#8b7faa] text-sm">
-            New to GameLore?{" "}
-            <Link
-              href="/signup"
-              className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
-            >
-              Create an account
-            </Link>
-          </p>
-        </div>
-      </div>
+      <LoginCredentialsForm />
     </div>
   );
 }

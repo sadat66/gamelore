@@ -40,16 +40,20 @@ export default function DashboardShell({
   const handleSignOut = async () => {
     if (!signOutLock.acquire()) return;
     setIsSigningOut(true);
+    let signedOutOk = false;
     try {
       await supabase.auth.signOut();
       toast.success("Until next time, adventurer!");
-      router.push("/");
-      router.refresh();
+      signedOutOk = true;
+      // Hard navigation so the shell cannot accept another sign-out while SPA routing catches up.
+      window.location.assign("/");
     } catch {
       toast.error("The realm refused your departure. Try again.");
     } finally {
-      signOutLock.release();
-      setIsSigningOut(false);
+      if (!signedOutOk) {
+        signOutLock.release();
+        setIsSigningOut(false);
+      }
     }
   };
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { flushSync } from "react-dom";
 import { useSubmitLock } from "@/hooks/use-submit-lock";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -19,6 +20,8 @@ export default function SignupPage() {
   const [emailSent, setEmailSent] = useState(false);
   const supabase = createClient();
   const submitLock = useSubmitLock();
+  const signupInFlightRef = useRef(false);
+  const signupSubmitBtnRef = useRef<HTMLButtonElement>(null);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,9 +36,16 @@ export default function SignupPage() {
       return;
     }
 
+    const btn = signupSubmitBtnRef.current;
+    if (btn?.disabled || signupInFlightRef.current) return;
     if (!submitLock.acquire()) return;
-    setLoading(true);
+    signupInFlightRef.current = true;
+    if (btn) btn.disabled = true;
+    flushSync(() => {
+      setLoading(true);
+    });
 
+    let signupSucceeded = false;
     try {
       const { error } = await supabase.auth.signUp({
         email,
@@ -50,13 +60,20 @@ export default function SignupPage() {
         return;
       }
 
+      signupSucceeded = true;
       setEmailSent(true);
+      setLoading(false);
       toast.success("Verification scroll sent! Check your email.");
     } catch {
       toast.error("An unexpected error occurred");
     } finally {
       submitLock.release();
-      setLoading(false);
+      signupInFlightRef.current = false;
+      // Do not re-enable the submit button after success — same race as login had.
+      if (!signupSucceeded) {
+        setLoading(false);
+        if (btn) btn.disabled = false;
+      }
     }
   };
 
@@ -134,7 +151,13 @@ export default function SignupPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSignup} className="space-y-5">
+        <form
+          onSubmit={handleSignup}
+          className={`space-y-5 ${loading ? "pointer-events-none" : ""}`}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && e.repeat) e.preventDefault();
+          }}
+        >
           <div className="space-y-2">
             <Label
               htmlFor="signup-email"
@@ -228,9 +251,11 @@ export default function SignupPage() {
           </div>
 
           <button
+            ref={signupSubmitBtnRef}
             type="submit"
             disabled={loading}
-            className="btn-epic w-full flex items-center justify-center gap-2 !py-3.5 !rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-busy={loading}
+            className="btn-epic w-full flex items-center justify-center gap-2 !py-3.5 !rounded-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
           >
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
