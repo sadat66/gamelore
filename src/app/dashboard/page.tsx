@@ -7,7 +7,6 @@ import {
   Sparkles,
   Bot,
   User,
-  Loader2,
   Scroll,
   ArrowLeft,
   Timer,
@@ -19,6 +18,7 @@ import {
 } from "@/lib/chat-rate-constants";
 import { GAME_GENRES, extraGenresFromGames } from "@/lib/game-genres";
 import { useSubmitLock } from "@/hooks/use-submit-lock";
+import { Spinner, SpinnerBlock } from "@/components/ui/spinner";
 
 const GENRE_FILTER_NONE = "__none__";
 
@@ -282,8 +282,7 @@ export default function DashboardPage() {
   if (gamesLoading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 text-purple-500 animate-spin mb-4" />
-        <p className="text-[#8b7faa] text-sm animate-pulse">Scrying the realms...</p>
+        <SpinnerBlock label="Scrying the realms..." />
       </div>
     );
   }
@@ -489,7 +488,7 @@ export default function DashboardPage() {
             </div>
             <div className="chat-bubble px-5 py-4">
               <div className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+                <Spinner size="sm" />
                 <span className="text-sm text-[#8b7faa]">
                   Retrieving lore & thinking…
                 </span>

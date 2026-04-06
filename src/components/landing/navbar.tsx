@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Shield, Menu, X, Swords, Loader2 } from "lucide-react";
+import { Shield, Menu, X, Swords } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -78,7 +79,7 @@ export default function Navbar() {
               className="btn-epic !py-2.5 !px-6 !text-sm flex items-center gap-2 shadow-[0_0_15px_rgba(139,92,246,0.3)] disabled:opacity-70 disabled:pointer-events-none disabled:cursor-wait"
             >
               {realmNavigating ? (
-                <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden />
+                <Spinner size="sm" />
               ) : (
                 <Swords className="w-4 h-4 shrink-0" aria-hidden />
               )}
@@ -121,7 +122,7 @@ export default function Navbar() {
                 className="btn-epic py-5 rounded-2xl text-xl flex items-center justify-center gap-3 w-full disabled:opacity-70 disabled:pointer-events-none disabled:cursor-wait"
               >
                 {realmNavigating ? (
-                  <Loader2 className="w-6 h-6 animate-spin shrink-0" aria-hidden />
+                  <Spinner size="lg" />
                 ) : (
                   <Swords className="w-6 h-6 shrink-0" aria-hidden />
                 )}

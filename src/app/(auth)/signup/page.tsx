@@ -7,7 +7,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, UserPlus, Loader2, Eye, EyeOff, Mail } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { Shield, UserPlus, Eye, EyeOff, Mail } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function SignupPage() {
@@ -258,7 +259,7 @@ export default function SignupPage() {
             className="btn-epic w-full flex items-center justify-center gap-2 !py-3.5 !rounded-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
           >
             {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Spinner size="md" />
             ) : (
               <>
                 <UserPlus className="w-5 h-5" />

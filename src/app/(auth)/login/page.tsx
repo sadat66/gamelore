@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Shield, Loader2 } from "lucide-react";
+import { Shield } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { LoginCredentialsForm } from "@/components/auth/login-credentials-form";
 import { SessionResumeCard } from "@/components/auth/session-resume-card";
+import { SpinnerBlock } from "@/components/ui/spinner";
 
 export default function LoginPage() {
   const [sessionUser, setSessionUser] = useState<User | null>(null);
@@ -35,10 +36,10 @@ export default function LoginPage() {
 
   if (checkingSession) {
     return (
-      <div className="flex flex-col items-center justify-center p-12">
-        <Loader2 className="w-10 h-10 text-purple-500 animate-spin mb-4" />
-        <p className="text-[#8b7faa] text-sm animate-pulse">Sensing your aura…</p>
-      </div>
+      <SpinnerBlock
+        label="Sensing your aura…"
+        className="p-12"
+      />
     );
   }
 

@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Spinner } from "@/components/ui/spinner";
 import type { User } from "@supabase/supabase-js";
-import { Shield, Loader2 } from "lucide-react";
+import { Shield } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface SessionResumeCardProps {
@@ -46,7 +47,7 @@ export function SessionResumeCard({ user, onSignedOut }: SessionResumeCardProps)
     <div className="rounded-3xl border border-[rgba(139,92,246,0.12)] bg-[rgba(12,6,24,0.65)] backdrop-blur-xl p-8 md:p-10 text-center shadow-[0_0_0_1px_rgba(139,92,246,0.06)_inset] relative overflow-hidden">
       {navigating ? (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[#06020f]/90 backdrop-blur-sm">
-          <Loader2 className="w-10 h-10 text-purple-400 animate-spin" />
+          <Spinner size="xl" />
           <p className="text-sm text-[#c4b5fd]">Opening the dashboard…</p>
         </div>
       ) : null}
@@ -71,9 +72,7 @@ export function SessionResumeCard({ user, onSignedOut }: SessionResumeCardProps)
         disabled={navigating || switching}
         className="btn-epic w-full flex items-center justify-center gap-2 !py-4 !rounded-xl disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed"
       >
-        {navigating ? (
-          <Loader2 className="w-5 h-5 animate-spin" aria-hidden />
-        ) : null}
+        {navigating ? <Spinner size="md" /> : null}
         {navigating ? "Opening…" : "Enter the Dashboard"}
       </button>
 

@@ -5,7 +5,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, Loader2, Eye, EyeOff, Sparkles } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { LogIn, Eye, EyeOff, Sparkles } from "lucide-react";
 import toast from "react-hot-toast";
 
 type Phase = "idle" | "submitting";
@@ -57,7 +58,7 @@ export function LoginCredentialsForm() {
           className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-[#06020f]/85 backdrop-blur-md"
           aria-hidden
         >
-          <Loader2 className="w-10 h-10 text-purple-400 animate-spin" />
+          <Spinner size="xl" />
           <p className="text-sm text-[#c4b5fd]">Signing you in…</p>
         </div>
       ) : null}
@@ -146,7 +147,7 @@ export function LoginCredentialsForm() {
             className="btn-epic w-full flex items-center justify-center gap-2 !py-3.5 !rounded-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
           >
             {locked ? (
-              <Loader2 className="w-5 h-5 animate-spin" aria-hidden />
+              <Spinner size="md" />
             ) : (
               <LogIn className="w-5 h-5" aria-hidden />
             )}
