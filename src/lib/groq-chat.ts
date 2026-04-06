@@ -10,6 +10,13 @@ function getClient(): Groq {
   return new Groq({ apiKey: key });
 }
 
+function maxOutputTokens(): number {
+  const raw = process.env.GROQ_MAX_OUTPUT_TOKENS?.trim();
+  const n = raw ? Number.parseInt(raw, 10) : NaN;
+  if (Number.isFinite(n) && n >= 64 && n <= 8192) return n;
+  return 384;
+}
+
 export async function groqLoreReply(params: {
   contextSnippets: string[];
   messages: ChatTurn[];
@@ -26,6 +33,7 @@ export async function groqLoreReply(params: {
     content: `You are the GameLore Oracle, an expert historian and master of this game's universe. Your voice is that of an ancient chronicler—authoritative, immersive, and wise.
 
 Rules for your prophecy:
+- Default to a concise answer (about 2–6 sentences) unless the question clearly needs a structured list or step-by-step detail.
 - **Never** mention words like "snippets," "context," "uploaded lore," or "provided text."
 - Weave the facts below into a seamless narrative. Do not use citation numbers like [1] or [2].
 - If the exact answer is missing, provide a wise interpretation based on the themes and related facts you *do* have, or note that the chronicles are silent on this particular mystery.
@@ -40,7 +48,7 @@ ${contextBlock || "(The chronicles of this era are currently lost to time.)"}`,
     model,
     messages: [system, ...params.messages],
     temperature: 0.3,
-    max_tokens: 1024,
+    max_tokens: maxOutputTokens(),
   });
 
   const text = completion.choices[0]?.message?.content?.trim();

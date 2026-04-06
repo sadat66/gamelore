@@ -1,17 +1,24 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   Send,
   Sparkles,
   Bot,
   User,
   Loader2,
-  ChevronDown,
   Scroll,
   ArrowLeft,
+  Timer,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import {
+  CHAT_RATE_WINDOW_MS_DEFAULT,
+  getChatRateSecondsLeft,
+} from "@/lib/chat-rate-constants";
+import { GAME_GENRES, extraGenresFromGames } from "@/lib/game-genres";
+
+const GENRE_FILTER_NONE = "__none__";
 
 interface Message {
   id: string;
@@ -23,8 +30,11 @@ interface Message {
 type GameOption = {
   id: string;
   title: string;
+  genre: string | null;
   thumbnail_url: string | null;
 };
+
+type GameSort = "genre" | "title";
 
 const WELCOME_MESSAGES: Message[] = [
   {
@@ -43,8 +53,33 @@ export default function DashboardPage() {
   const [messages, setMessages] = useState<Message[]>(WELCOME_MESSAGES);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sendTimestamps, setSendTimestamps] = useState<number[]>([]);
+  const [lockUntilServer, setLockUntilServer] = useState<number | null>(null);
+  const [tick, setTick] = useState(0);
+  const [gameSort, setGameSort] = useState<GameSort>("genre");
+  const [genreFilter, setGenreFilter] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (lockUntilServer != null && Date.now() >= lockUntilServer) {
+      setLockUntilServer(null);
+    }
+  }, [lockUntilServer, tick]);
+
+  const now = Date.now();
+  const clientCooldownSec = getChatRateSecondsLeft(sendTimestamps, now);
+  const serverCooldownSec =
+    lockUntilServer != null && lockUntilServer > now
+      ? Math.max(0, Math.ceil((lockUntilServer - now) / 1000))
+      : 0;
+  const rateLimitSecondsLeft = Math.max(clientCooldownSec, serverCooldownSec);
+  void tick;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -80,6 +115,10 @@ export default function DashboardPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
+    if (rateLimitSecondsLeft > 0) {
+      toast.error(`Wait ${rateLimitSecondsLeft}s before sending another message.`);
+      return;
+    }
     if (!gameId) {
       toast.error("Select a game first");
       return;
@@ -111,7 +150,27 @@ export default function DashboardPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Chat request failed");
+      if (!res.ok) {
+        if (res.status === 429) {
+          const retryRaw = res.headers.get("Retry-After");
+          let retrySec = retryRaw ? Number.parseInt(retryRaw, 10) : NaN;
+          if (!Number.isFinite(retrySec) || retrySec < 1) retrySec = 60;
+          setLockUntilServer(Date.now() + retrySec * 1000);
+          const msg =
+            typeof data.error === "string"
+              ? data.error
+              : "Too many messages per minute. Please wait before sending another.";
+          toast.error(msg);
+          return;
+        }
+        throw new Error(data.error ?? "Chat request failed");
+      }
+
+      const w = CHAT_RATE_WINDOW_MS_DEFAULT;
+      setSendTimestamps((prev) => [
+        ...prev.filter((t) => Date.now() - t < w),
+        Date.now(),
+      ]);
 
       const aiMessage: Message = {
         id: `ai-${Date.now()}`,
@@ -144,6 +203,37 @@ export default function DashboardPage() {
 
   const currentGame = games.find((g) => g.id === gameId);
 
+  const legacyGenreOptions = useMemo(
+    () => extraGenresFromGames(games.map((g) => g.genre)),
+    [games]
+  );
+
+  const displayGames = useMemo(() => {
+    let list = games.filter((g) => {
+      if (genreFilter === "") return true;
+      if (genreFilter === GENRE_FILTER_NONE) return !(g.genre ?? "").trim();
+      return g.genre === genreFilter;
+    });
+    const cmpGenre = (a: GameOption, b: GameOption) => {
+      const sa = (a.genre ?? "").trim();
+      const sb = (b.genre ?? "").trim();
+      if (!sa && !sb) return 0;
+      if (!sa) return 1;
+      if (!sb) return -1;
+      const g = sa.localeCompare(sb, undefined, { sensitivity: "base" });
+      if (g !== 0) return g;
+      return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+    };
+    if (gameSort === "title") {
+      list.sort((a, b) =>
+        a.title.localeCompare(b.title, undefined, { sensitivity: "base" })
+      );
+    } else {
+      list.sort(cmpGenre);
+    }
+    return list;
+  }, [games, gameSort, genreFilter]);
+
   if (gamesLoading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center">
@@ -167,6 +257,51 @@ export default function DashboardPage() {
             <p className="text-[#8b7faa]">Choose a game to begin your lore quest</p>
           </div>
 
+          {games.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="text-xs text-[#8b7faa] uppercase tracking-wider">
+                  Genre
+                </label>
+                <select
+                  value={genreFilter}
+                  onChange={(e) => setGenreFilter(e.target.value)}
+                  className="rounded-xl bg-[rgba(15,10,30,0.9)] border border-[rgba(139,92,246,0.2)] text-sm text-[#e8e0f0] px-3 py-2 outline-none focus:border-purple-500/50 min-w-[11rem]"
+                >
+                  <option value="">All genres</option>
+                  <option value={GENRE_FILTER_NONE}>No genre</option>
+                  {GAME_GENRES.map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
+                  {legacyGenreOptions.length > 0 ? (
+                    <optgroup label="Other (legacy)">
+                      {legacyGenreOptions.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
+                </select>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="text-xs text-[#8b7faa] uppercase tracking-wider">
+                  Sort by
+                </label>
+                <select
+                  value={gameSort}
+                  onChange={(e) => setGameSort(e.target.value as GameSort)}
+                  className="rounded-xl bg-[rgba(15,10,30,0.9)] border border-[rgba(139,92,246,0.2)] text-sm text-[#e8e0f0] px-3 py-2 outline-none focus:border-purple-500/50"
+                >
+                  <option value="genre">Genre, then title</option>
+                  <option value="title">Title (A–Z)</option>
+                </select>
+              </div>
+            </div>
+          ) : null}
+
           {games.length === 0 ? (
             <div className="glass-card p-12 text-center border-dashed border-2 border-[rgba(139,92,246,0.15)] bg-transparent">
               <Scroll className="w-12 h-12 text-[rgba(139,92,246,0.3)] mx-auto mb-4" />
@@ -174,9 +309,15 @@ export default function DashboardPage() {
                 No realms have been indexed yet. Ask an admin to upload lore documents.
               </p>
             </div>
+          ) : displayGames.length === 0 ? (
+            <div className="glass-card p-12 text-center border border-[rgba(139,92,246,0.15)] bg-transparent max-w-lg mx-auto">
+              <p className="text-[#8b7faa] text-sm">
+                No games match this genre filter. Try &quot;All genres&quot; or another option.
+              </p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
-              {games.map((g) => (
+              {displayGames.map((g) => (
                 <button
                   key={g.id}
                   onClick={() => setGameId(g.id)}
@@ -201,6 +342,9 @@ export default function DashboardPage() {
                     <h3 className="text-lg font-semibold text-white group-hover:text-purple-300 transition-colors truncate">
                       {g.title}
                     </h3>
+                    {g.genre ? (
+                      <p className="text-xs text-[#8b7faa] mt-1 truncate">{g.genre}</p>
+                    ) : null}
                     <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <span className="text-[10px] uppercase tracking-widest text-purple-400 font-bold">
                         Enter Realm
@@ -329,17 +473,34 @@ export default function DashboardPage() {
             />
             <button
               type="submit"
-              disabled={!input.trim() || isLoading || !gameId}
+              disabled={
+                !input.trim() ||
+                isLoading ||
+                !gameId ||
+                rateLimitSecondsLeft > 0
+              }
               className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-purple-700 flex items-center justify-center text-white disabled:opacity-30 disabled:cursor-not-allowed hover:from-purple-500 hover:to-purple-600 transition-all duration-200"
             >
               <Send className="w-4 h-4" />
             </button>
           </div>
-          <div className="flex items-center justify-center gap-2 mt-2">
-            <Sparkles className="w-3 h-3 text-[rgba(139,92,246,0.3)]" />
-            <p className="text-[10px] text-[rgba(139,92,246,0.3)]">
-              Answers use RAG over your uploads; they are not general web knowledge.
-            </p>
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+            {rateLimitSecondsLeft > 0 ? (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(236,72,153,0.35)] bg-[rgba(236,72,153,0.12)] px-2.5 py-1 text-[11px] font-medium text-pink-200"
+                role="status"
+                aria-live="polite"
+              >
+                <Timer className="w-3.5 h-3.5 shrink-0 opacity-90" />
+                Next message in {rateLimitSecondsLeft}s
+              </span>
+            ) : null}
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-3 h-3 text-[rgba(139,92,246,0.3)]" />
+              <p className="text-[10px] text-[rgba(139,92,246,0.3)]">
+                Answers use RAG over your uploads; they are not general web knowledge.
+              </p>
+            </div>
           </div>
         </form>
       </div>

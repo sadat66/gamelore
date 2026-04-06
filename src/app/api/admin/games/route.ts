@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { slugifyTitle } from "@/lib/game-utils";
+import { parseCanonicalGenreOrNull } from "@/lib/game-genres";
 
 export const runtime = "nodejs";
 
@@ -33,6 +34,11 @@ export async function POST(request: Request) {
 
   const form = await request.formData();
   const title = String(form.get("title") ?? "").trim();
+  const genreRaw = String(form.get("genre") ?? "").trim();
+  const genre = parseCanonicalGenreOrNull(genreRaw);
+  if (genreRaw.length > 0 && genre === null) {
+    return NextResponse.json({ error: "Invalid genre" }, { status: 400 });
+  }
   const thumb = form.get("thumbnail");
 
   if (!title) {
@@ -52,8 +58,8 @@ export async function POST(request: Request) {
 
   const { data: game, error: insertErr } = await supabase
     .from("games")
-    .insert({ slug, title, thumbnail_path: null })
-    .select("id, slug, title, thumbnail_path")
+    .insert({ slug, title, thumbnail_path: null, genre })
+    .select("id, slug, title, thumbnail_path, genre")
     .single();
 
   if (insertErr || !game) {
@@ -94,6 +100,75 @@ export async function POST(request: Request) {
     return NextResponse.json({
       game: { ...game, thumbnail_path: path },
     });
+  }
+
+  return NextResponse.json({ game });
+}
+
+export async function PATCH(request: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!(await assertAdmin(supabase, user.id))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
+
+  const gameId = "gameId" in body && typeof (body as { gameId: unknown }).gameId === "string"
+    ? (body as { gameId: string }).gameId.trim()
+    : "";
+
+  if (!gameId) {
+    return NextResponse.json({ error: "gameId is required" }, { status: 400 });
+  }
+
+  if (!("genre" in body)) {
+    return NextResponse.json({ error: "genre is required (string or null)" }, { status: 400 });
+  }
+
+  const g = (body as { genre: unknown }).genre;
+  let genre: string | null;
+  if (g === null) {
+    genre = null;
+  } else if (typeof g === "string") {
+    const parsed = parseCanonicalGenreOrNull(g);
+    if (g.trim().length > 0 && parsed === null) {
+      return NextResponse.json({ error: "Invalid genre" }, { status: 400 });
+    }
+    genre = parsed;
+  } else {
+    return NextResponse.json({ error: "genre must be a string or null" }, { status: 400 });
+  }
+
+  const { data: game, error: updateErr } = await supabase
+    .from("games")
+    .update({ genre })
+    .eq("id", gameId)
+    .select("id, slug, title, thumbnail_path, genre")
+    .single();
+
+  if (updateErr) {
+    return NextResponse.json({ error: updateErr.message }, { status: 500 });
+  }
+
+  if (!game) {
+    return NextResponse.json({ error: "Game not found" }, { status: 404 });
   }
 
   return NextResponse.json({ game });

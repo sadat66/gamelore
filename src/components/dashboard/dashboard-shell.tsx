@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSubmitLock } from "@/hooks/use-submit-lock";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -32,11 +33,12 @@ export default function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const signOutLock = useSubmitLock();
   const router = useRouter();
   const supabase = createClient();
 
   const handleSignOut = async () => {
-    if (isSigningOut) return;
+    if (!signOutLock.acquire()) return;
     setIsSigningOut(true);
     try {
       await supabase.auth.signOut();
@@ -46,6 +48,7 @@ export default function DashboardShell({
     } catch {
       toast.error("The realm refused your departure. Try again.");
     } finally {
+      signOutLock.release();
       setIsSigningOut(false);
     }
   };

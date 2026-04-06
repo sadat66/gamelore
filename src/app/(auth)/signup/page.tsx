@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSubmitLock } from "@/hooks/use-submit-lock";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const supabase = createClient();
+  const submitLock = useSubmitLock();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +33,7 @@ export default function SignupPage() {
       return;
     }
 
+    if (!submitLock.acquire()) return;
     setLoading(true);
 
     try {
@@ -52,6 +55,7 @@ export default function SignupPage() {
     } catch {
       toast.error("An unexpected error occurred");
     } finally {
+      submitLock.release();
       setLoading(false);
     }
   };
