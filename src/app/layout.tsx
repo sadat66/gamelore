@@ -8,8 +8,8 @@ export const metadata: Metadata = {
     "Your AI-powered companion for exploring game lore, mythology, and hidden storylines. Powered by RAG and LLMs.",
   keywords: ["game lore", "AI chatbot", "RPG lore", "game mythology", "RAG"],
   icons: {
-    icon: "/grimoire-mark.png",
-    apple: "/grimoire-mark.png",
+    icon: "/favicon.ico",
+    apple: "/logo.png",
   },
 };
 

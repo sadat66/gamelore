@@ -34,7 +34,7 @@ export function BrandMark({
         style={{ width: px, height: px }}
       >
         <Image
-          src="/grimoire-mark.png"
+          src="/logo.png"
           alt="Grimoire"
           width={px}
           height={px}
