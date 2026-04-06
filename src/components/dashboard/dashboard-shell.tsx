@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { DASHBOARD_NEW_QUEST_EVENT } from "@/lib/dashboard-events";
+import { usePathname } from "next/navigation";
 
 interface DashboardShellProps {
   user: User;
@@ -35,6 +37,7 @@ export default function DashboardShell({
   const [isSigningOut, setIsSigningOut] = useState(false);
   const signOutLock = useSubmitLock();
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
 
   const handleSignOut = async () => {
@@ -94,9 +97,14 @@ export default function DashboardShell({
         {/* New chat button */}
         <div className="p-4 space-y-2">
           <button
+            type="button"
             onClick={() => {
-              router.push("/dashboard");
-              router.refresh();
+              setSidebarOpen(false);
+              if (pathname === "/dashboard") {
+                window.dispatchEvent(new CustomEvent(DASHBOARD_NEW_QUEST_EVENT));
+              } else {
+                router.push("/dashboard");
+              }
             }}
             disabled={isSigningOut}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-[rgba(139,92,246,0.2)] bg-[rgba(139,92,246,0.06)] text-sm text-purple-300 hover:bg-[rgba(139,92,246,0.12)] hover:border-[rgba(139,92,246,0.35)] transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"

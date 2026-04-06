@@ -19,6 +19,7 @@ import {
 import { GAME_GENRES, extraGenresFromGames } from "@/lib/game-genres";
 import { useSubmitLock } from "@/hooks/use-submit-lock";
 import { Spinner, SpinnerBlock } from "@/components/ui/spinner";
+import { DASHBOARD_NEW_QUEST_EVENT } from "@/lib/dashboard-events";
 
 const GENRE_FILTER_NONE = "__none__";
 
@@ -144,6 +145,21 @@ export default function DashboardPage() {
       backNavLockRef.current = false;
     });
   }, []);
+
+  const startNewQuest = useCallback(() => {
+    setGameId("");
+    setMessages(WELCOME_MESSAGES);
+    setInput("");
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const onNewQuest = () => {
+      startNewQuest();
+    };
+    window.addEventListener(DASHBOARD_NEW_QUEST_EVENT, onNewQuest);
+    return () => window.removeEventListener(DASHBOARD_NEW_QUEST_EVENT, onNewQuest);
+  }, [startNewQuest]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
