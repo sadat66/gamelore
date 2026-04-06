@@ -1,0 +1,2 @@
+-- Optional: insert sample games after migrations (thumbnails null until admin uploads)
+-- insert into public.games (slug, title) values ('demo-realm', 'Demo Realm');

@@ -17,6 +17,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { getLatestNews } from "@/lib/gamespot";
+import Navbar from "@/components/landing/navbar";
 
 /** Refresh homepage (including GameSpot news) periodically instead of only at build time. */
 export const revalidate = 3600;
@@ -95,65 +96,6 @@ function FloatingOrbs() {
   );
 }
 
-function Navbar() {
-  return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-[rgba(139,92,246,0.1)] bg-[rgba(6,2,15,0.8)] backdrop-blur-xl">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative">
-            <Shield className="w-8 h-8 text-purple-500 transition-all duration-300 group-hover:text-purple-400" />
-            <div className="absolute inset-0 blur-lg bg-purple-500/30 rounded-full transition-all duration-300 group-hover:bg-purple-400/40" />
-          </div>
-          <span
-            className="text-xl tracking-wider text-white"
-            style={{ fontFamily: "'Cinzel', serif", fontWeight: 700 }}
-          >
-            GAMELORE
-          </span>
-        </Link>
-
-        <div className="hidden md:flex items-center gap-8">
-          <a
-            href="#features"
-            className="text-sm text-[#8b7faa] hover:text-purple-400 transition-colors duration-300"
-          >
-            Features
-          </a>
-          <a
-            href="#how-it-works"
-            className="text-sm text-[#8b7faa] hover:text-purple-400 transition-colors duration-300"
-          >
-            How It Works
-          </a>
-          <a
-            href="#games"
-            className="text-sm text-[#8b7faa] hover:text-purple-400 transition-colors duration-300"
-          >
-            Games
-          </a>
-          <a
-            href="#news"
-            className="text-sm text-[#8b7faa] hover:text-purple-400 transition-colors duration-300"
-          >
-            News
-          </a>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <Link
-            href="/login"
-            className="text-sm text-[#c4b5fd] hover:text-white transition-colors duration-300"
-          >
-            Sign In
-          </Link>
-          <Link href="/signup" className="btn-epic !py-2.5 !px-6 !text-sm">
-            Start Quest
-          </Link>
-        </div>
-      </div>
-    </nav>
-  );
-}
 
 function HeroSection() {
   return (

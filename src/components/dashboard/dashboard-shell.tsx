@@ -21,28 +21,36 @@ import toast from "react-hot-toast";
 interface DashboardShellProps {
   user: User;
   children: React.ReactNode;
+  isAdmin?: boolean;
 }
 
-export default function DashboardShell({ user, children }: DashboardShellProps) {
+export default function DashboardShell({
+  user,
+  children,
+  isAdmin = false,
+}: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast.success("Until next time, adventurer!");
-    router.push("/");
-    router.refresh();
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await supabase.auth.signOut();
+      toast.success("Until next time, adventurer!");
+      router.push("/");
+      router.refresh();
+    } catch {
+      toast.error("The realm refused your departure. Try again.");
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
-  const chatHistory = [
-    { id: 1, title: "Dark Souls Lore Deep Dive", date: "Today" },
-    { id: 2, title: "Elden Ring: The Shattering", date: "Today" },
-    { id: 3, title: "Zelda Timeline Theory", date: "Yesterday" },
-    { id: 4, title: "Mass Effect Reaper Origins", date: "Yesterday" },
-    { id: 5, title: "Hollow Knight: Pale King", date: "3 days ago" },
-  ];
+  const chatHistory: { id: number; title: string; date: string }[] = [];
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#06020f]">
@@ -80,37 +88,53 @@ export default function DashboardShell({ user, children }: DashboardShellProps) 
         </div>
 
         {/* New chat button */}
-        <div className="p-4">
+        <div className="p-4 space-y-2">
           <button
             onClick={() => {
               router.push("/dashboard");
               router.refresh();
             }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-[rgba(139,92,246,0.2)] bg-[rgba(139,92,246,0.06)] text-sm text-purple-300 hover:bg-[rgba(139,92,246,0.12)] hover:border-[rgba(139,92,246,0.35)] transition-all duration-200"
+            disabled={isSigningOut}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-[rgba(139,92,246,0.2)] bg-[rgba(139,92,246,0.06)] text-sm text-purple-300 hover:bg-[rgba(139,92,246,0.12)] hover:border-[rgba(139,92,246,0.35)] transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             New Quest
           </button>
+          {isAdmin ? (
+            <Link
+              href="/dashboard/admin"
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-[rgba(234,179,8,0.25)] bg-[rgba(234,179,8,0.06)] text-sm text-amber-200/90 hover:bg-[rgba(234,179,8,0.1)] transition-all duration-200 ${
+                isSigningOut ? "pointer-events-none opacity-30" : ""
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              Lore control panel
+            </Link>
+          ) : null}
         </div>
 
         {/* Chat history */}
         <div className="flex-1 overflow-y-auto px-3 pb-4">
-          <div className="mb-2 px-3">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-[rgba(139,92,246,0.4)]">
-              Recent Quests
-            </span>
-          </div>
-          <div className="space-y-1">
-            {chatHistory.map((chat) => (
-              <button
-                key={chat.id}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm text-[#8b7faa] hover:text-[#c4b5fd] hover:bg-[rgba(139,92,246,0.06)] transition-all duration-200 group"
-              >
-                <MessageSquare className="w-4 h-4 flex-shrink-0 opacity-50 group-hover:opacity-80" />
-                <span className="truncate">{chat.title}</span>
-              </button>
-            ))}
-          </div>
+          {chatHistory.length > 0 && (
+            <>
+              <div className="mb-2 px-3">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[rgba(139,92,246,0.4)]">
+                  Recent Quests
+                </span>
+              </div>
+              <div className="space-y-1">
+                {chatHistory.map((chat) => (
+                  <button
+                    key={chat.id}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm text-[#8b7faa] hover:text-[#c4b5fd] hover:bg-[rgba(139,92,246,0.06)] transition-all duration-200 group"
+                  >
+                    <MessageSquare className="w-4 h-4 flex-shrink-0 opacity-50 group-hover:opacity-80" />
+                    <span className="truncate">{chat.title}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Sidebar footer - user */}
@@ -152,10 +176,11 @@ export default function DashboardShell({ user, children }: DashboardShellProps) 
                 <div className="my-1 border-t border-[rgba(139,92,246,0.1)]" />
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                  disabled={isSigningOut}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-all duration-200 disabled:opacity-50"
                 >
                   <LogOut className="w-4 h-4" />
-                  Sign Out
+                  {isSigningOut ? "Departing..." : "Sign Out"}
                 </button>
               </div>
             )}
