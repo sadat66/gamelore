@@ -44,7 +44,7 @@ const WELCOME_MESSAGES: Message[] = [
     id: "welcome-1",
     role: "assistant",
     content:
-      "⚔️ Greetings! Choose your realm above, then ask about lore from the documents your admins have uploaded. I answer from that game’s indexed knowledge — not from the open web.",
+      "⚔️ Greetings! Choose your realm above, then ask about lore. This is a RAG-based chat: I answer from lore your admins have uploaded and the system has indexed—not from the open web.",
     timestamp: new Date(),
   },
 ];
@@ -564,7 +564,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <Sparkles className="w-3 h-3 text-[rgba(139,92,246,0.3)]" />
               <p className="text-[10px] text-[rgba(139,92,246,0.3)]">
-                Answers use RAG over your uploads; they are not general web knowledge.
+                RAG chat: answers from indexed lore (admin uploads)—not general web knowledge.
               </p>
             </div>
           </div>

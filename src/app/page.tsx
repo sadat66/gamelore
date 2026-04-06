@@ -143,8 +143,10 @@ function HeroSection() {
           className="text-lg md:text-xl text-[#8b7faa] max-w-2xl mx-auto mb-10 animate-fade-in-up leading-relaxed"
           style={{ animationDelay: "0.3s", animationFillMode: "both" }}
         >
-          Your AI-powered lore companion that knows every quest, every character,
-          and every hidden storyline. Ask anything about your favorite games.
+          An AI lore companion that answers from{" "}
+          <span className="text-[#a89bc4]">your indexed library</span>—characters,
+          timelines, and secrets as they appear in the documents you trust. Ask in
+          plain language, realm by realm.
         </p>
 
         {/* CTA buttons */}
@@ -224,7 +226,7 @@ function FeaturesSection() {
       icon: Brain,
       title: "Deep Lore Knowledge",
       description:
-        "Powered by RAG technology that indexes thousands of game wikis, lore entries, and community-curated content.",
+        "Retrieval-augmented generation (RAG): your lore is chunked, embedded, and matched to each question—so answers lean on what you’ve indexed, not random web noise.",
       color: "text-purple-400",
       glow: "rgba(139,92,246,0.15)",
     },
@@ -232,7 +234,7 @@ function FeaturesSection() {
       icon: MessageSquare,
       title: "Natural Conversations",
       description:
-        "Ask questions in plain language. Our AI understands context, follows up on previous answers, and connects lore threads.",
+        "Ask in plain language. The model uses chat context to follow up, clarify, and weave together threads from your corpus.",
       color: "text-pink-400",
       glow: "rgba(236,72,153,0.15)",
     },
@@ -240,15 +242,15 @@ function FeaturesSection() {
       icon: BookOpen,
       title: "Multi-Game Library",
       description:
-        "From Dark Souls to Elden Ring, Zelda to Mass Effect — explore the deep lore of hundreds of game universes.",
+        "Each realm is its own space—add games over time and keep their lore separate. Scale from one passion project to a shelf of worlds.",
       color: "text-cyan-400",
       glow: "rgba(6,182,212,0.15)",
     },
     {
       icon: Scroll,
-      title: "Quest Tracking",
+      title: "Lore Threads",
       description:
-        "Never get lost in a storyline again. Track branching narratives, hidden quests, and secret endings.",
+        "Start a fresh conversation when you want a clean slate, or keep going in the same thread. Stay focused on the story you’re exploring.",
       color: "text-amber-400",
       glow: "rgba(245,158,11,0.15)",
     },
@@ -256,15 +258,15 @@ function FeaturesSection() {
       icon: Zap,
       title: "Instant Answers",
       description:
-        "No more digging through wikis. Get accurate, sourced answers in seconds with contextual references.",
+        "Skip manual doc-hunting. Get a concise reply in seconds, grounded in the passages the system retrieved for your question.",
       color: "text-emerald-400",
       glow: "rgba(16,185,129,0.15)",
     },
     {
       icon: Shield,
-      title: "Spoiler Control",
+      title: "Curated Canon",
       description:
-        "Set your progress and our AI will carefully avoid spoilers beyond your current point in the game.",
+        "Admins upload the PDFs and documents that define each game’s knowledge base—so answers reflect the canon you choose to include.",
       color: "text-rose-400",
       glow: "rgba(244,63,94,0.15)",
     },
@@ -287,7 +289,8 @@ function FeaturesSection() {
             Legendary <span className="gradient-text">Capabilities</span>
           </h2>
           <p className="text-[#8b7faa] text-lg max-w-xl mx-auto">
-            Every tool a lore hunter needs, powered by cutting-edge AI.
+            Built for teams and fans who want lore Q&amp;A that stays tied to their
+            own library—without losing the fantasy.
           </p>
         </div>
 
@@ -328,21 +331,21 @@ function HowItWorksSection() {
       icon: Crown,
       title: "Choose Your Realm",
       description:
-        "Select the game universe you want to explore. From fantasy RPGs to sci-fi epics, we have it all.",
+        "Pick a game from your library—each one has its own indexed documents and its own chat.",
     },
     {
       step: "02",
       icon: MessageSquare,
       title: "Ask the Oracle",
       description:
-        "Type any question about characters, quests, timelines, or hidden lore. Our AI knows it all.",
+        "Ask about characters, events, timelines, or connections. If it’s in your uploaded lore, Grimoire can draw it into the answer.",
     },
     {
       step: "03",
       icon: Scroll,
       title: "Receive Ancient Knowledge",
       description:
-        "Get detailed, accurate answers sourced from official lore, community research, and game data.",
+        "Get a narrative reply shaped by retrieved passages from your corpus—immersive, without pretending to cite the whole internet.",
     },
   ];
 
@@ -369,7 +372,7 @@ function HowItWorksSection() {
             Your Journey <span className="gradient-text">Begins Here</span>
           </h2>
           <p className="text-[#8b7faa] text-lg max-w-xl mx-auto">
-            Three simple steps to unlock the deepest game lore.
+            Three steps from login to answers grounded in the lore you’ve loaded.
           </p>
         </div>
 
@@ -438,10 +441,11 @@ function GamesSection() {
             className="text-4xl md:text-5xl font-bold text-white mb-4"
             style={{ fontFamily: "'Cinzel', serif" }}
           >
-            Supported <span className="gradient-text">Realms</span>
+            Realms <span className="gradient-text">like these</span>
           </h2>
           <p className="text-[#8b7faa] text-lg max-w-xl mx-auto">
-            Explore lore from the most legendary game worlds ever created.
+            Examples of the kinds of worlds Grimoire shines for—your actual games
+            come from what you or your team add.
           </p>
         </div>
 
@@ -472,7 +476,7 @@ function GamesSection() {
         </div>
 
         <p className="text-center text-[#8b7faa] text-sm mt-8 italic">
-          ...and hundreds more being added every week
+          Add new realms anytime—each one is powered by the documents you ingest.
         </p>
       </div>
     </section>
@@ -494,8 +498,8 @@ function CTASection() {
             Ready to Explore the <span className="gradient-text">Unknown?</span>
           </h2>
           <p className="text-[#8b7faa] text-lg max-w-lg mx-auto mb-10">
-            Join thousands of lore hunters already using Grimoire to uncover
-            the deepest secrets of their favorite game worlds.
+            Bring your lore files, pick a realm, and start asking—whether you’re
+            a small team or a solo archivist.
           </p>
           <Link
             href="/signup"
@@ -580,7 +584,8 @@ async function NewsSection() {
             The Realm&apos;s <span className="gradient-text">Whispers</span>
           </h2>
           <p className="text-[#8b7faa] text-lg max-w-xl mx-auto">
-            Stay ahead of the game with the most recent updates and lore drops.
+            Headlines from the wider gaming world—alongside the lore you explore in
+            Grimoire.
           </p>
         </div>
 
