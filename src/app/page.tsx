@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { getLatestNews } from "@/lib/gamespot";
 import Navbar from "@/components/landing/navbar";
+import { BrandMark } from "@/components/brand/brand-mark";
 
 /** Refresh homepage (including GameSpot news) periodically instead of only at build time. */
 export const revalidate = 3600;
@@ -176,7 +177,7 @@ function HeroSection() {
             <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[rgba(139,92,246,0.1)]">
               <MessageSquare className="w-4 h-4 text-purple-400" />
               <span className="text-sm text-purple-300 font-medium">
-                GameLore AI
+                Grimoire
               </span>
               <span className="ml-auto flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
@@ -493,7 +494,7 @@ function CTASection() {
             Ready to Explore the <span className="gradient-text">Unknown?</span>
           </h2>
           <p className="text-[#8b7faa] text-lg max-w-lg mx-auto mb-10">
-            Join thousands of lore hunters already using GameLore AI to uncover
+            Join thousands of lore hunters already using Grimoire to uncover
             the deepest secrets of their favorite game worlds.
           </p>
           <Link
@@ -515,15 +516,11 @@ function Footer() {
     <footer className="border-t border-[rgba(139,92,246,0.1)] py-12">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <Shield className="w-6 h-6 text-purple-500" />
-            <span
-              className="text-lg tracking-wider text-white"
-              style={{ fontFamily: "'Cinzel', serif", fontWeight: 600 }}
-            >
-              GAMELORE
-            </span>
-          </div>
+          <BrandMark
+            size="sm"
+            wordmarkClassName="text-lg font-semibold"
+            href="/"
+          />
 
           <div className="flex items-center gap-8">
             <a
@@ -553,7 +550,7 @@ function Footer() {
           </div>
 
           <p className="text-xs text-[#8b7faa]">
-            © 2026 GameLore AI. All realms reserved.
+            © 2026 Grimoire. All realms reserved.
           </p>
         </div>
       </div>

@@ -6,7 +6,7 @@
  *   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  *
  * Optional env:
- *   ADMIN_EMAIL    (default: admin@gamelore.local)
+ *   ADMIN_EMAIL    (default: admin@grimoire.local)
  *   ADMIN_PASSWORD (if unset, a random password is generated and printed once)
  */
 import { createClient } from "@supabase/supabase-js";
@@ -52,7 +52,7 @@ if (!url || !serviceKey) {
 }
 
 const email =
-  (process.env.ADMIN_EMAIL || "admin@gamelore.local").trim().toLowerCase();
+  (process.env.ADMIN_EMAIL || "admin@grimoire.local").trim().toLowerCase();
 
 function randomPassword() {
   const chars =

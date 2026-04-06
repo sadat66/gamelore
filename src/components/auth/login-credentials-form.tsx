@@ -157,7 +157,7 @@ export function LoginCredentialsForm() {
 
         <div className="mt-6 text-center">
           <p className="text-[#8b7faa] text-sm">
-            New to GameLore?{" "}
+            New to Grimoire?{" "}
             <Link
               href="/signup"
               className="text-purple-400 hover:text-purple-300 font-medium transition-colors"

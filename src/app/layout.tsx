@@ -3,10 +3,14 @@ import "./globals.css";
 import ToastProvider from "@/components/providers/toast-provider";
 
 export const metadata: Metadata = {
-  title: "GameLore AI — Unravel the Legends",
+  title: "Grimoire — Unravel the Legends",
   description:
     "Your AI-powered companion for exploring game lore, mythology, and hidden storylines. Powered by RAG and LLMs.",
   keywords: ["game lore", "AI chatbot", "RPG lore", "game mythology", "RAG"],
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
