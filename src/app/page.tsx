@@ -23,13 +23,14 @@ import Navbar from "@/components/landing/navbar";
 export const revalidate = 3600;
 
 function ParticleField() {
+  /** Deterministic “random” layout per particle index (pure render; no Math.random). */
   const particles = Array.from({ length: 30 }, (_, i) => ({
     id: i,
-    left: `${Math.random() * 100}%`,
-    delay: `${Math.random() * 15}s`,
-    duration: `${10 + Math.random() * 20}s`,
-    size: `${2 + Math.random() * 4}px`,
-    opacity: 0.3 + Math.random() * 0.5,
+    left: `${((i * 37 + 13) % 100)}%`,
+    delay: `${(i * 11) % 15}s`,
+    duration: `${10 + (i * 7) % 20}s`,
+    size: `${2 + (i * 3) % 4}px`,
+    opacity: 0.3 + (((i * 5) % 10) / 20),
   }));
 
   return (
