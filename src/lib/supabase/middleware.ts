@@ -1,17 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getSupabasePublicConfig } from "@/lib/supabase/public-env";
 
 export async function updateSession(request: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const { url: supabaseUrl, anon: supabaseAnonKey, isConfigured } =
+    getSupabasePublicConfig();
 
   // Skip auth check if Supabase is not configured yet
-  if (
-    !supabaseUrl ||
-    !supabaseAnonKey ||
-    supabaseUrl === "your_supabase_url_here" ||
-    supabaseAnonKey === "your_supabase_anon_key_here"
-  ) {
+  if (!isConfigured) {
     // Still protect dashboard if Supabase isn't set up
     if (request.nextUrl.pathname.startsWith("/dashboard")) {
       const url = request.nextUrl.clone();
