@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { slugifyTitle } from "@/lib/game-utils";
+import { parseCanonicalGenreOrNull } from "@/lib/game-genres";
 
 export const runtime = "nodejs";
 
@@ -34,7 +35,10 @@ export async function POST(request: Request) {
   const form = await request.formData();
   const title = String(form.get("title") ?? "").trim();
   const genreRaw = String(form.get("genre") ?? "").trim();
-  const genre = genreRaw.length > 0 ? genreRaw : null;
+  const genre = parseCanonicalGenreOrNull(genreRaw);
+  if (genreRaw.length > 0 && genre === null) {
+    return NextResponse.json({ error: "Invalid genre" }, { status: 400 });
+  }
   const thumb = form.get("thumbnail");
 
   if (!title) {
@@ -143,8 +147,11 @@ export async function PATCH(request: Request) {
   if (g === null) {
     genre = null;
   } else if (typeof g === "string") {
-    const t = g.trim();
-    genre = t.length > 0 ? t : null;
+    const parsed = parseCanonicalGenreOrNull(g);
+    if (g.trim().length > 0 && parsed === null) {
+      return NextResponse.json({ error: "Invalid genre" }, { status: 400 });
+    }
+    genre = parsed;
   } else {
     return NextResponse.json({ error: "genre must be a string or null" }, { status: 400 });
   }

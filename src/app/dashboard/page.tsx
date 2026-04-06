@@ -16,6 +16,9 @@ import {
   CHAT_RATE_WINDOW_MS_DEFAULT,
   getChatRateSecondsLeft,
 } from "@/lib/chat-rate-constants";
+import { GAME_GENRES, extraGenresFromGames } from "@/lib/game-genres";
+
+const GENRE_FILTER_NONE = "__none__";
 
 interface Message {
   id: string;
@@ -54,6 +57,7 @@ export default function DashboardPage() {
   const [lockUntilServer, setLockUntilServer] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
   const [gameSort, setGameSort] = useState<GameSort>("genre");
+  const [genreFilter, setGenreFilter] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -199,8 +203,17 @@ export default function DashboardPage() {
 
   const currentGame = games.find((g) => g.id === gameId);
 
+  const legacyGenreOptions = useMemo(
+    () => extraGenresFromGames(games.map((g) => g.genre)),
+    [games]
+  );
+
   const displayGames = useMemo(() => {
-    const list = [...games];
+    let list = games.filter((g) => {
+      if (genreFilter === "") return true;
+      if (genreFilter === GENRE_FILTER_NONE) return !(g.genre ?? "").trim();
+      return g.genre === genreFilter;
+    });
     const cmpGenre = (a: GameOption, b: GameOption) => {
       const sa = (a.genre ?? "").trim();
       const sb = (b.genre ?? "").trim();
@@ -219,7 +232,7 @@ export default function DashboardPage() {
       list.sort(cmpGenre);
     }
     return list;
-  }, [games, gameSort]);
+  }, [games, gameSort, genreFilter]);
 
   if (gamesLoading) {
     return (
@@ -245,18 +258,47 @@ export default function DashboardPage() {
           </div>
 
           {games.length > 0 ? (
-            <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
-              <label className="text-xs text-[#8b7faa] uppercase tracking-wider">
-                Sort by
-              </label>
-              <select
-                value={gameSort}
-                onChange={(e) => setGameSort(e.target.value as GameSort)}
-                className="rounded-xl bg-[rgba(15,10,30,0.9)] border border-[rgba(139,92,246,0.2)] text-sm text-[#e8e0f0] px-3 py-2 outline-none focus:border-purple-500/50"
-              >
-                <option value="genre">Genre, then title</option>
-                <option value="title">Title (A–Z)</option>
-              </select>
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="text-xs text-[#8b7faa] uppercase tracking-wider">
+                  Genre
+                </label>
+                <select
+                  value={genreFilter}
+                  onChange={(e) => setGenreFilter(e.target.value)}
+                  className="rounded-xl bg-[rgba(15,10,30,0.9)] border border-[rgba(139,92,246,0.2)] text-sm text-[#e8e0f0] px-3 py-2 outline-none focus:border-purple-500/50 min-w-[11rem]"
+                >
+                  <option value="">All genres</option>
+                  <option value={GENRE_FILTER_NONE}>No genre</option>
+                  {GAME_GENRES.map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
+                  {legacyGenreOptions.length > 0 ? (
+                    <optgroup label="Other (legacy)">
+                      {legacyGenreOptions.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
+                </select>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="text-xs text-[#8b7faa] uppercase tracking-wider">
+                  Sort by
+                </label>
+                <select
+                  value={gameSort}
+                  onChange={(e) => setGameSort(e.target.value as GameSort)}
+                  className="rounded-xl bg-[rgba(15,10,30,0.9)] border border-[rgba(139,92,246,0.2)] text-sm text-[#e8e0f0] px-3 py-2 outline-none focus:border-purple-500/50"
+                >
+                  <option value="genre">Genre, then title</option>
+                  <option value="title">Title (A–Z)</option>
+                </select>
+              </div>
             </div>
           ) : null}
 
@@ -265,6 +307,12 @@ export default function DashboardPage() {
               <Scroll className="w-12 h-12 text-[rgba(139,92,246,0.3)] mx-auto mb-4" />
               <p className="text-[#8b7faa]">
                 No realms have been indexed yet. Ask an admin to upload lore documents.
+              </p>
+            </div>
+          ) : displayGames.length === 0 ? (
+            <div className="glass-card p-12 text-center border border-[rgba(139,92,246,0.15)] bg-transparent max-w-lg mx-auto">
+              <p className="text-[#8b7faa] text-sm">
+                No games match this genre filter. Try &quot;All genres&quot; or another option.
               </p>
             </div>
           ) : (

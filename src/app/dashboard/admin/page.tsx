@@ -5,6 +5,7 @@ import { useSubmitLock } from "@/hooks/use-submit-lock";
 import Link from "next/link";
 import { ArrowLeft, Gamepad2, Loader2, Upload } from "lucide-react";
 import toast from "react-hot-toast";
+import { GAME_GENRES, isCanonicalGenre } from "@/lib/game-genres";
 
 type GameRow = {
   id: string;
@@ -55,7 +56,12 @@ export default function AdminControlPanelPage() {
   const selected = games.find((g) => g.id === selectedId) ?? null;
 
   useEffect(() => {
-    setEditGenre(selected?.genre ?? "");
+    const g = selected?.genre;
+    if (!g) {
+      setEditGenre("");
+      return;
+    }
+    setEditGenre(isCanonicalGenre(g) ? g : "");
   }, [selectedId, selected?.genre]);
 
   async function handleCreateGame(e: React.FormEvent) {
@@ -187,26 +193,19 @@ export default function AdminControlPanelPage() {
               <label className="block text-xs text-[#8b7faa] mb-1.5">
                 Genre (optional)
               </label>
-              <input
+              <select
                 value={newGenre}
                 onChange={(e) => setNewGenre(e.target.value)}
                 disabled={creating}
-                placeholder="e.g. Metroidvania, RPG, FPS"
-                list="game-genre-suggestions"
-                className="w-full rounded-xl bg-[rgba(6,2,15,0.6)] border border-[rgba(139,92,246,0.15)] px-4 py-2.5 text-sm text-[#e8e0f0] placeholder:text-[rgba(139,102,204,0.35)] outline-none focus:border-purple-500/40 disabled:opacity-50"
-              />
-              <datalist id="game-genre-suggestions">
-                <option value="Action" />
-                <option value="Adventure" />
-                <option value="RPG" />
-                <option value="Strategy" />
-                <option value="Simulation" />
-                <option value="Puzzle" />
-                <option value="Horror" />
-                <option value="FPS" />
-                <option value="Metroidvania" />
-                <option value="Roguelike" />
-              </datalist>
+                className="w-full rounded-xl bg-[rgba(6,2,15,0.6)] border border-[rgba(139,92,246,0.15)] px-4 py-2.5 text-sm text-[#e8e0f0] outline-none focus:border-purple-500/40 disabled:opacity-50"
+              >
+                <option value="">No genre</option>
+                {GAME_GENRES.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-xs text-[#8b7faa] mb-1.5">
@@ -290,17 +289,28 @@ export default function AdminControlPanelPage() {
                 <span className="text-white font-medium">{selected.title}</span>
                 <span className="text-[#8b7faa]"> — genre</span>
               </p>
+              {selected.genre && !isCanonicalGenre(selected.genre) ? (
+                <p className="text-xs text-amber-200/90 leading-relaxed">
+                  Stored value &quot;{selected.genre}&quot; is not in the list — pick a genre
+                  below (or No genre) and save to replace it.
+                </p>
+              ) : null}
               <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
                 <div className="flex-1">
                   <label className="block text-xs text-[#8b7faa] mb-1.5">Genre</label>
-                  <input
+                  <select
                     value={editGenre}
                     onChange={(e) => setEditGenre(e.target.value)}
                     disabled={savingGenre}
-                    placeholder="Same as when creating; leave empty to clear"
-                    list="game-genre-suggestions"
-                    className="w-full rounded-xl bg-[rgba(6,2,15,0.6)] border border-[rgba(139,92,246,0.15)] px-4 py-2.5 text-sm text-[#e8e0f0] placeholder:text-[rgba(139,102,204,0.35)] outline-none focus:border-purple-500/40 disabled:opacity-50"
-                  />
+                    className="w-full rounded-xl bg-[rgba(6,2,15,0.6)] border border-[rgba(139,92,246,0.15)] px-4 py-2.5 text-sm text-[#e8e0f0] outline-none focus:border-purple-500/40 disabled:opacity-50"
+                  >
+                    <option value="">No genre</option>
+                    {GAME_GENRES.map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <button
                   type="submit"
