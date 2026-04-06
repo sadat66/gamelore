@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Shield, Menu, X, Swords } from "lucide-react";
+import { Menu, X, Swords } from "lucide-react";
+import { BrandMark } from "@/components/brand/brand-mark";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/spinner";
@@ -48,18 +49,11 @@ export default function Navbar() {
         : "bg-transparent py-5 border-transparent"
     }`}>
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative">
-            <Shield className="w-8 h-8 text-purple-500 transition-all duration-300 group-hover:text-purple-400" />
-            <div className="absolute inset-0 blur-lg bg-purple-500/30 rounded-full transition-all duration-300 group-hover:bg-purple-400/40" />
-          </div>
-          <span
-            className="text-xl tracking-wider text-white"
-            style={{ fontFamily: "'Cinzel', serif", fontWeight: 700 }}
-          >
-            GAMELORE
-          </span>
-        </Link>
+        <BrandMark
+          size="md"
+          wordmarkClassName="text-xl font-bold"
+          priority
+        />
 
         {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-8">
@@ -138,7 +132,7 @@ export default function Navbar() {
           </div>
           
           <p className="text-[#4a3a6b] text-xs uppercase tracking-widest pt-12">
-            © 2026 GameLore AI. All realms reserved.
+            © 2026 Grimoire. All realms reserved.
           </p>
         </div>
       </div>

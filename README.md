@@ -1,6 +1,6 @@
-# GameLore
+# Grimoire
 
-GameLore is a web app where signed-in users pick a game and ask questions about its lore. Answers are generated with an LLM **grounded in admin-uploaded documents**: text is chunked, embedded into **pgvector** in Supabase, retrieved by similarity for each question, then passed to **Groq** as context—so the assistant stays tied to your corpus, not the open web.
+Grimoire is a web app where signed-in users pick a game and ask questions about its lore. Answers are generated with an LLM **grounded in admin-uploaded documents**: text is chunked, embedded into **pgvector** in Supabase, retrieved by similarity for each question, then passed to **Groq** as context—so the assistant stays tied to your corpus, not the open web.
 
 ## Features
 

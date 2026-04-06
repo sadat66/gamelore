@@ -8,7 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { Shield, UserPlus, Eye, EyeOff, Mail } from "lucide-react";
+import { UserPlus, Eye, EyeOff, Mail } from "lucide-react";
+import { BrandMark } from "@/components/brand/brand-mark";
 import toast from "react-hot-toast";
 
 export default function SignupPage() {
@@ -127,16 +128,12 @@ export default function SignupPage() {
   return (
     <div className="animate-fade-in-up">
       {/* Mobile logo */}
-      <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-        <Link href="/" className="flex items-center gap-3">
-          <Shield className="w-8 h-8 text-purple-500" />
-          <span
-            className="text-2xl tracking-wider text-white"
-            style={{ fontFamily: "'Cinzel', serif", fontWeight: 700 }}
-          >
-            GAMELORE
-          </span>
-        </Link>
+      <div className="lg:hidden flex items-center justify-center mb-8">
+        <BrandMark
+          href="/"
+          size="md"
+          wordmarkClassName="text-2xl font-bold"
+        />
       </div>
 
       <div className="glass-card p-8 md:p-10">

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { Shield } from "lucide-react";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { LoginCredentialsForm } from "@/components/auth/login-credentials-form";
@@ -56,16 +55,12 @@ export default function LoginPage() {
 
   return (
     <div className="animate-fade-in-up space-y-8">
-      <div className="lg:hidden flex items-center justify-center gap-3">
-        <Link href="/" className="flex items-center gap-3">
-          <Shield className="w-8 h-8 text-purple-500" />
-          <span
-            className="text-2xl tracking-wider text-white"
-            style={{ fontFamily: "'Cinzel', serif", fontWeight: 700 }}
-          >
-            GAMELORE
-          </span>
-        </Link>
+      <div className="lg:hidden flex items-center justify-center">
+        <BrandMark
+          href="/"
+          size="md"
+          wordmarkClassName="text-2xl font-bold"
+        />
       </div>
 
       <LoginCredentialsForm />

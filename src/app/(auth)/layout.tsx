@@ -1,5 +1,4 @@
-import { Shield } from "lucide-react";
-import Link from "next/link";
+import { BrandMark } from "@/components/brand/brand-mark";
 
 export default function AuthLayout({
   children,
@@ -46,18 +45,13 @@ export default function AuthLayout({
       {/* Left panel - branding (hidden on mobile) */}
       <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center relative p-12">
         <div className="max-w-md text-center">
-          <Link href="/" className="inline-flex items-center gap-3 mb-8 group">
-            <div className="relative">
-              <Shield className="w-12 h-12 text-purple-500 transition-all duration-300 group-hover:text-purple-400" />
-              <div className="absolute inset-0 blur-xl bg-purple-500/20 rounded-full" />
-            </div>
-            <span
-              className="text-3xl tracking-wider text-white"
-              style={{ fontFamily: "'Cinzel', serif", fontWeight: 700 }}
-            >
-              GAMELORE
-            </span>
-          </Link>
+          <BrandMark
+            href="/"
+            size="xl"
+            wordmarkClassName="text-3xl font-bold"
+            className="inline-flex mb-8"
+            priority
+          />
 
           <h2
             className="text-2xl font-bold text-white mb-4"

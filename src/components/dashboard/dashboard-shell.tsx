@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import {
-  Shield,
   LogOut,
   MessageSquare,
   Plus,
@@ -18,6 +17,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { BrandMark } from "@/components/brand/brand-mark";
 
 interface DashboardShellProps {
   user: User;
@@ -77,15 +77,12 @@ export default function DashboardShell({
       >
         {/* Sidebar header */}
         <div className="p-5 border-b border-[rgba(139,92,246,0.1)] flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <Shield className="w-7 h-7 text-purple-500 transition-colors group-hover:text-purple-400" />
-            <span
-              className="text-lg tracking-wider text-white"
-              style={{ fontFamily: "'Cinzel', serif", fontWeight: 700 }}
-            >
-              GAMELORE
-            </span>
-          </Link>
+          <BrandMark
+            href="/"
+            size="lg"
+            wordmarkClassName="text-lg font-bold"
+            gapClassName="gap-2.5"
+          />
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden text-[#8b7faa] hover:text-white transition-colors"
